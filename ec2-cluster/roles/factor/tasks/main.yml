@@ -1,0 +1,21 @@
+---
+- name: copy over custom cado parameters file
+  template: src=cado_params.j2 dest={{ params_file_remote }}
+  tags: params
+- copy: src=~/.boto dest=/home/ubuntu/.boto
+  tags: boto
+- file: state=absent path={{ repodir }}
+  tags: git
+- git:
+    repo: 'git@github.com:eniac/faas.git'
+    dest: {{ repodir }}
+    accept_hostkey: yes
+    clone: yes
+    update: yes
+    #force: yes
+  tags: git
+- template: src=supervisord_conf.j2 dest=/home/ubuntu/supervisord.conf
+  tags: supervisor
+- name: launch factoring job
+  include: launch-supervisor.yml
+  tags: supervisor

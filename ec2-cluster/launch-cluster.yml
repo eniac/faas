@@ -1,0 +1,10 @@
+---
+- name: launch ec2 instances
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+   - ec2_variables.yml
+  roles:
+   - { role: launch, instance: '{{ master }}', tags: ['master'] }
+   - { role: launch, instance: '{{ mpi }}', tags: ['mpi'] }
+   - { role: launch, instance: '{{ slave }}', tags: ['slave'] }

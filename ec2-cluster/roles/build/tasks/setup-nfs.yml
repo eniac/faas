@@ -1,0 +1,10 @@
+---
+# NFS
+- apt: name=nfs-common
+  sudo: yes
+- apt: name=nfs-kernel-server
+  sudo: yes
+- file: state=directory owner=ubuntu group=ubuntu path={{ workdir }}
+  sudo: yes
+- lineinfile: line="{{ master.private_ip }}:{{ workdir }} {{ workdir }} nfs auto 0 0" dest=/etc/fstab
+  sudo: yes

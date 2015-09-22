@@ -1,0 +1,6 @@
+- name: Launch EC2 instance
+  hosts: localhost
+  vars_files:
+   - ec2_variables.yml
+  roles:
+   - { role: launch, instance: '{{ ami_builder }}' }

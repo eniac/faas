@@ -1,0 +1,38 @@
+---
+# Set up Enhanced Networking following guide at http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/enhanced-networking.html#enhanced-networking-ubuntu
+- apt: update_cache=yes
+  sudo: yes
+- apt: upgrade=yes
+  sudo: yes
+- apt: name=dkms
+  sudo: yes
+- unarchive: src=ixgbevf-2.16.1.tar.gz dest=/usr/src
+  sudo: yes
+# Copy over patch from https://gist.github.com/defila-aws/44946d3a3c0874fe3d17
+- copy: src=kcompat.h dest=/usr/src/ixgbevf-2.16.1/src/
+  sudo: yes
+- copy: src=dkms.conf dest=/usr/src/ixgbevf-2.16.1/
+  sudo: yes
+- shell: dkms add -m ixgbevf -v 2.16.1
+  sudo: yes
+  ignore_errors: yes
+- shell: dkms build -m ixgbevf -v 2.16.1
+  sudo: yes
+  ignore_errors: yes
+- shell: dkms install -m ixgbevf -v 2.16.1
+  sudo: yes
+  ignore_errors: yes
+- shell: update-initramfs -c -k all
+  sudo: yes
+  ignore_errors: yes
+
+- local_action: shell aws ec2 stop-instances --instance-ids {{ hostvars[inventory_hostname].ec2_id }}
+  sudo: no
+- local_action: shell aws ec2 wait instance-stopped --instance-ids {{ hostvars[inventory_hostname].ec2_id }}
+  sudo: no
+- local_action: shell aws ec2 modify-instance-attribute --instance-id {{ hostvars[inventory_hostname].ec2_id }} --sriov-net-support simple
+  sudo: no
+- local_action: shell aws ec2 start-instances --instance-ids {{ hostvars[inventory_hostname].ec2_id }}
+  sudo: no
+- local_action: shell aws ec2 wait instance-running --instance-ids {{ hostvars[inventory_hostname].ec2_id }}
+  sudo: no

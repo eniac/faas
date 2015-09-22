@@ -1,0 +1,8 @@
+---
+- name: copy parameter files, pull faas scripts from repo, start supervisor daemon
+  hosts: "{{ master.group }}"
+  gather_facts: no
+  vars_files:
+   - ec2_variables.yml
+  roles:
+   - factor

@@ -1,0 +1,13 @@
+---
+- name: Install cado on host and copy over custom files
+  hosts: "{{ ami_builder.group }}"
+#  sudo: yes
+  vars_files:
+   - ec2_variables.yml
+  roles: 
+   - build
+  
+  post_tasks:
+   # Set up enhanced networking last, since this requires that the nodes be stopped and started (usually with different IP addresses).
+   - include: roles/build/tasks/setup-enhanced-networking.yml
+     tags: enhanced

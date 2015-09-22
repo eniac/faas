@@ -1,0 +1,12 @@
+# Must pass in a variable defining instance details when calling this role
+# For example, let 'master' be as defined in ec2_variables.yml
+# roles:
+#  - { role: terminate, instance: '{{ master }}' }
+---
+- name: Terminate node
+  ec2:
+    state: 'absent'
+    region: "{{ ec2.aws_region }}"
+    instance_ids: "{{ hostvars[item].ec2_id }}"
+  with_items:  
+   - "{{ groups[instance.group]|default([]) }}"

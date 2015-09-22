@@ -1,0 +1,20 @@
+---
+# Download and install OpenMPI
+- set_fact:
+    openmpi_url: "http://www.open-mpi.org/software/ompi/v1.10/downloads/openmpi-1.10.0.tar.gz"
+    openmpi_ver: openmpi-1.10.0
+    openmpi_tar: "{{ openmpi_ver}}.tar.gz"
+- get_url: dest=/tmp url={{ openmpi_url }}
+  sudo: yes
+- unarchive: copy=no src=/tmp/{{ openmpi_tar }} dest=/usr/src
+  sudo: yes
+- shell: ./configure --prefix="{{ openmpi_tar }}" chdir=/usr/src/{{ openmpi_ver }}
+  sudo: yes
+- shell: make -j4 all chdir=/usr/src/{{ openmpi_ver }}
+  sudo: yes
+- shell: make install chdir=/usr/src/{{ openmpi_ver }}
+  sudo: yes
+- lineinfile: dest=/etc/profile line='export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/{{ openmpi_ver }}/lib/"'
+  sudo: yes
+- shell: ln -s -f /opt/{{ openmpi_ver }}/bin/* /usr/bin
+  sudo: yes

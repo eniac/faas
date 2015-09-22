@@ -1,0 +1,10 @@
+---
+- name: terminate ec2 instances
+  hosts: localhost
+  gather_facts: no
+  vars_files: 
+   - ec2_variables.yml
+  roles:
+   - { role: terminate, instance: '{{ master }}', tags: ['master'] }
+   - { role: terminate, instance: '{{ mpi }}', tags: ['mpi'] }
+   - { role: terminate, instance: '{{ slave }}', tags: ['slave'] }

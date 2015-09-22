@@ -1,0 +1,41 @@
+# Must pass in a variable defining instance details when calling this role
+# For example, let 'master' be as defined in ec2_variables.yml
+# roles:
+#  - { role: launch, instance: '{{ master }}' }
+---
+- name: Launch EC2 instance(s)
+  ec2:
+    key_name: "{{ ec2.ssh_key }}"
+    aws_region: "{{ ec2.aws_region }}"
+    zone: "{{ ec2.aws_zone }}"
+    image: "{{ instance.image }}"
+    vpc_subnet_id: "{{ ec2.vpc_subnet_id }}"
+    instance_type: "{{ instance.type }}"
+    group: "{{ ec2.security_group }}"
+    placement_group: "{{ ec2.placement_group }}"
+    exact_count: "{{ instance.count }}"
+    private_ip: "{{ instance.private_ip|default('') }}"
+    count_tag: 
+      Name: "{{ instance.tag }}"
+    instance_tags:
+      Name: "{{ instance.tag }}"
+    volumes:
+    - device_name: "{{ ec2.device_name }}"
+      volume_size: "{{ instance.volume_size }}" 
+      delete_on_termination: "{{ instance.delete_volume_on_termination|default(true) }}"
+    validate_certs: no
+    assign_public_ip: yes
+    spot_price: "{{ instance.spot_price|default('') }}"
+    spot_wait_timeout: "{{ instance.spot_wait_timeout|default(0) }}"
+    wait: yes 
+  register: ec2_output
+
+ # If the node is newly added, it will not be in the dynamic inventory file.
+ # Add to host group so we can see this node later in the playbook.
+- name: Add new instance to host group
+  add_host: hostname={{ item.public_ip }} groupname={{ instance.group }}
+  with_items: ec2_output.tagged_instances
+
+- name: Wait for SSH to come up
+  wait_for: host={{ item.public_dns_name }} port=22 delay=0 timeout=320 state=started
+  with_items: ec2_output.tagged_instances

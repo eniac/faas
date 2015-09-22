@@ -1,0 +1,12 @@
+---
+# Set up password-less SSH amongst all of the nodes by baking a common key into the image
+- shell: yes | ssh-keygen -f /home/ubuntu/.ssh/id_rsa -t rsa -N ''
+  sudo: no
+- shell: cat /home/ubuntu/.ssh/id_rsa.pub >> /home/ubuntu/.ssh/authorized_keys 
+  sudo: no
+- lineinfile: dest=/home/ubuntu/.ssh/config line='IdentityFile ~/.ssh/id_rsa' create=yes
+  sudo: no
+- lineinfile: dest=/home/ubuntu/.ssh/config create=yes line='Host *'
+  sudo: no
+- lineinfile: dest=/home/ubuntu/.ssh/config create=yes line='\tStrictHostKeyChecking no' insertafter='^Host *' 
+  sudo: no

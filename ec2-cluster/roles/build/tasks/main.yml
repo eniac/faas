@@ -1,0 +1,15 @@
+---
+- include: install-common.yml
+  tags: common
+- include: setup-ssh.yml
+  tags: ssh
+- include: install-slurm.yml    # this must be installed before mpi (since in mpi build script uninstalls old versions of MPI)
+  tags: slurm
+- include: install-mpi.yml
+  tags: mpi
+- include: install-msieve.yml   # this must be installed after mpi
+  tags: msieve
+- include: install-cado.yml
+  tags: cado
+- include: setup-nfs.yml
+  tags: nfs

@@ -1,0 +1,81 @@
+###########################################################################
+#     Parameter file for Cado-NFS (Generated via Ansible)
+###########################################################################
+# See params/params.c90 for an example which contains some documentation.
+
+###########################################################################
+# General parameters
+###########################################################################
+
+N = {{ cado.N }}
+name={{ cado.name }}
+tasks.workdir={{ workdir }}/{{ cado.name }}
+tasks.execpath={{ sourcedir }}/cado-nfs/build 
+tasks.msievedir={{ sourcedir }}/msieve-1.52
+tasks.hosts=
+{%- for host in groups[master.group]|default([]) | union(groups[mpi.group]|default([])) -%}
+    {{ hostvars[host]['ec2_private_ip_address'] }}
+    {%- if not loop.last -%}
+    ,
+    {%- endif -%}
+{% endfor %}
+
+tasks.mpi={{ cado.tasks.mpi }}
+
+# Run these commands at various stages in the factoring script (e.g., to shut down nodes or email results)
+{% if commands.post_sieve is defined %}
+commands.post_sieve = {{ commands.post_sieve }}
+{% endif %}
+{% if commands.post_linalg is defined %}
+commands.post_linalg = {{ commands.post_linalg }}
+{% endif %}
+{% if commands.post_factor is defined %}
+commands.post_factor = {{ commands.post_factor }}
+{% endif %}
+
+###########################################################################
+# Polynomial selection
+###########################################################################
+
+tasks.polyselect.threads = {{ cado.tasks.polyselect.threads }}
+tasks.polyselect.degree = {{ cado.tasks.polyselect.degree }}
+tasks.polyselect.P = {{ cado.tasks.polyselect.P }}
+tasks.polyselect.admax = {{ cado.tasks.polyselect.admax }}
+tasks.polyselect.incr = {{ cado.tasks.polyselect.incr }}
+tasks.polyselect.nq = {{ cado.tasks.polyselect.nq }}
+
+###########################################################################
+# Sieve
+###########################################################################
+
+tasks.sieve.threads = {{ cado.tasks.sieve.threads }}
+
+rlim = {{ cado.rlim }}
+alim = {{ cado.alim }}
+lpbr = {{ cado.lpbr }}
+lpba = {{ cado.lpba }}
+tasks.sieve.mfbr = {{ cado.tasks.sieve.mfbr }}
+tasks.sieve.mfba = {{ cado.tasks.sieve.mfba }}
+tasks.sieve.rlambda = {{ cado.tasks.sieve.rlambda }}
+tasks.sieve.alambda = {{ cado.tasks.sieve.alambda }}
+tasks.sieve.ncurves0 = {{ cado.tasks.sieve.ncurves0 }}
+tasks.sieve.ncurves1 = {{ cado.tasks.sieve.ncurves1 }}
+tasks.I = {{ cado.tasks.I }}
+tasks.sieve.qrange = {{ cado.tasks.sieve.qrange }}
+
+{% if cado.tasks.sieve.rels_wanted is defined %}
+tasks.sieve.rels_wanted = {{ cado.tasks.sieve.rels_wanted }}
+{% endif %}
+
+###########################################################################
+# Filtering
+###########################################################################
+
+tasks.filter.threads = {{ cado.tasks.filter.threads }}
+
+tasks.filter.purge.keep = {{ cado.tasks.filter.purge.keep }}
+tasks.filter.maxlevel = {{ cado.tasks.filter.maxlevel }}
+tasks.filter.ratio = {{ cado.tasks.filter.ratio }}
+tasks.filter.merge.forbw = {{ cado.tasks.filter.merge.forbw }}
+
+tasks.filter.target_density = {{ cado.tasks.filter.target_density }}

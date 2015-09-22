@@ -1,0 +1,60 @@
+---
+# Install packages that are needed for all AMIs
+- apt: update_cache=yes
+  sudo: yes
+- apt: upgrade=full
+  sudo: yes
+- apt: upgrade=dist
+  sudo: yes
+- apt: name=build-essential
+  sudo: yes
+- apt: name=g++
+  sudo: yes
+- apt: name=python3-minimal
+  sudo: yes
+- apt: name=cmake 
+  sudo: yes
+- apt: name=python-setuptools 
+  sudo: yes
+- apt: name=git 
+  sudo: yes
+- apt: name=libtool 
+  sudo: yes
+- apt: name=libgmp3-dev 
+  sudo: yes
+- apt: name=libibnetdisc-dev 
+  sudo: yes
+- command: apt-get -y autoremove 
+  sudo: yes
+- easy_install: name=supervisor
+  sudo: yes
+- easy_install: name=superlance
+  sudo: yes
+
+# Convenience packages
+- apt: name=htop 
+  sudo: yes
+- apt: name=iperf
+  sudo: yes
+
+# Packages for automated emailing and shutdown using Supervisor and Ansible
+- apt: name=sendmail
+  sudo: yes
+- apt: name=sendemail
+  sudo: yes
+- apt: name=python3-pip
+  sudo: yes
+- pip: executable=pip3 name=boto
+  sudo: yes
+
+# Install ansible
+- apt: name=python-boto
+  sudo: yes
+- apt: name=python-apt
+  sudo: yes
+- apt: name=software-properties-common
+  sudo: yes
+- apt_repository: repo="ppa:ansible/ansible"
+  sudo: yes
+- apt: name=ansible update_cache=yes
+  sudo: yes

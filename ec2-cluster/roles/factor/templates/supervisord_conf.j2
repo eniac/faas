@@ -1,0 +1,33 @@
+; supervisor config file
+
+[inet_http_server]
+port = *:{{ supervisor.port }}
+username={{ supervisor.username }}
+password={{ supervisor.password }}
+
+[supervisord]
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=http://localhost:{{ supervisor.port }}
+username={{ supervisor.username }}
+password={{ supervisor.password }}
+
+[program:server]
+environment= PYTHONPATH="{{ sourcedir }}/cado-nfs/scripts/cadofactor:{{ repodir }}/slurm"
+autostart=false
+autorestart=false
+startsecs=0
+exitcodes=0
+user=ubuntu
+directory=/home/ubuntu
+stdout_logfile=/home/ubuntu/server.stdout
+stderr_logfile=/home/ubuntu/server.stderr
+command=python3 {{ repodir }}/slurm/run.sh {{ params_file_remote }}
+
+; Send mail when the master server exits unexpectedly
+[eventlistener:crashmail]
+command=crashmail -p server -m {{ supervisor.email }} -o "FACTORING CRASHED"
+events=PROCESS_STATE_EXITED
