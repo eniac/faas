@@ -11,7 +11,7 @@ N = {{ cado.N }}
 name={{ cado.name }}
 tasks.workdir={{ workdir }}/{{ cado.name }}
 tasks.execpath={{ sourcedir }}/cado-nfs/build 
-tasks.msievedir={{ sourcedir }}/msieve-1.52
+tasks.msievedir={{ sourcedir }}/msieve-custom
 tasks.hosts=
 {%- for host in groups[master.group]|default([]) | union(groups[mpi.group]|default([])) -%}
     {{ hostvars[host]['ec2_private_ip_address'] }}
