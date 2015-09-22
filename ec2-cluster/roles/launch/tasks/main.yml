@@ -12,8 +12,8 @@
     vpc_subnet_id: "{{ ec2.vpc_subnet_id }}"
     instance_type: "{{ instance.type }}"
     group: "{{ ec2.security_group }}"
-    placement_group: "{{ ec2.placement_group }}"
-    exact_count: "{{ instance.count }}"
+    placement_group: "{{ instance.placement_group|default('') }}"
+    exact_count: "{{ instance.count|default(1) }}"
     private_ip: "{{ instance.private_ip|default('') }}"
     count_tag: 
       Name: "{{ instance.tag }}"

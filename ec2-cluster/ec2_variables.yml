@@ -27,7 +27,7 @@ repodir: /home/ubuntu/faas
 workdir: /workdir
 
 # Define variables for each type of instance to be launched
-my_tag: --replace--                             # change this tag to ensure that your instances
+my_tag: faas                                    # change this tag to ensure that your instances
                                                 # will have unique tags. This can be any 
                                                 # alphanumeric string.
 ami_builder:
@@ -44,12 +44,12 @@ ami_builder:
 master:
 	tag: "{{ my_tag }}_master"
 	group: "tag_Name_{{ my_tag }}_master"
+	placement_group: "{{ ec2.placement_group }}"
 	image: "{{ ec2.custom_image_id }}"
 	type: c4.8xlarge
 	cores: 36
 	volume_size: 50
 	delete_volume_on_termination: no
-	count: 1
 	private_ip: 10.0.2.5                        # Make sure that this IP address is in your EC2
                                                 # subnet and is not already taken by a node. The
                                                 # master node address will be baked into the EC2
@@ -60,6 +60,7 @@ master:
 mpi:
 	tag: "{{ my_tag }}_mpi"
 	group: "tag_Name_{{ my_tag }}_mpi"
+	placement_group: "{{ ec2.placement_group }}"
 	image: "{{ ec2.custom_image_id }}"
 	type: c4.8xlarge
 	cores: 36
@@ -93,9 +94,9 @@ supervisor:
 # or anything else. If you wish to run multiple commands, it is recommended that 
 # you copy a script to the master node and call the script here.
 commands:
-	post_sieve: 'ansible-playbook -i {{ repodir }}/ec2/ec2.py {{ repodir }}/ansible/terminate-cluster.yml --tags=slave'                           
-	post_linalg: 'ansible-playbook -i {{ repodir }}/ansible/ec2.py {{ repodir }}/ansible/terminate-cluster.yml --tags=mpi'                           
-	post_factor: 'ansible-playbook -i {{ repodir }}/ansible/ec2.py {{ repodir }}/ansible/stop-master.yml'                           
+	post_sieve: 'ansible-playbook -i {{ repodir }}/ec2-cluster/ec2.py {{ repodir }}/ec2-cluster/terminate-cluster.yml --tags=slave'                           
+	post_linalg: 'ansible-playbook -i {{ repodir }}/ec2-cluster/ec2.py {{ repodir }}/ec2-cluster/terminate-cluster.yml --tags=mpi'                           
+	post_factor: 'ansible-playbook -i {{ repodir }}/ec2-cluster/ec2.py {{ repodir }}/ec2-cluster/stop-master.yml'                           
 
 # Parameters specific to cado-nfs. To add more parameters to this list, edit
 # both the variables below and 'roles/factor/templates/cado_params.yml'.
