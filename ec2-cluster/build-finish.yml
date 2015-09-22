@@ -22,7 +22,7 @@
       register: ami_output
 
     - name: Copy the new image id to the ec2_variables file  
-      lineinfile: 'dest=./ec2_variables.yml state=present regexp="^  custom_image_id" line="  custom_image_id: {{ ami_output.image_id }}                 # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too."'
+      lineinfile: 'dest=./ec2_variables.yml state=present regexp="^    custom_image_id" line="  custom_image_id: {{ ami_output.image_id }}               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too."'
 
     - name: Terminate temporary instance
       ec2:

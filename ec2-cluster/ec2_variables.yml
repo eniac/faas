@@ -10,11 +10,10 @@ ec2:
     ssh_key: cado 
     aws_region: us-east-1
     aws_zone: us-east-1b
-    vpc_subnet_id: subnet-63335e48
-    vpc_id: vpc-960c4af3 
+    vpc_subnet_id: --replace--
+    vpc_id: --replace--
     image_name: faas-image                      # the name to give to the newly created image
-    custom_image_id: ami-d9e15db2               # Dynamically updated when a new AMI is built
-                                                # using build-finish.yml. You can edit this manually too.
+    custom_image_id: ami-d9e15db2               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too.
     ami_description: cado-nfs, slurm, nfs, supervisor 
 
 # Source directory for installed packages on remote machines
@@ -84,10 +83,10 @@ slave:
 supervisor:
     remote_conf: supervisord.conf
     port: 9001
-    username: username                # username and password to access the supervisor http
+    username: --replace--                 # username and password to access the supervisor http
                                           # server at <server-ip>:<supervisord_port>
-    password: replace
-    email: luke.valenta@gmail.com                    # supervisor will send crash reports to this address
+    password: --replace--
+    email: --replace--                    # supervisor will send crash reports to this address
 
 # These commands are run after the corresponding stages have completed, and can
 # be used to shut down EC2 instances, email intermediate or final results, 
