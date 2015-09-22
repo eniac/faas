@@ -20,6 +20,7 @@ Steps:
     $ aws ec2 create-security-group --group-name <my-security-group> --vpc-id <my-vpc-id> --description "my security group"
 
     Tips:
+        - Set the permissions on your security group to allow connections from the ports used by slurm and nfs.
         - Set permissions on your security group to allow ssh on port 22 from the IP address of the machine used to launch the factoring job.
 
 4. Create subnet using id of previously created VPC.

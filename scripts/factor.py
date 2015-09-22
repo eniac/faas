@@ -388,7 +388,7 @@ def do_polysel(parameters):
         result['duration'] = poly_finish - poly_start
         logger.info("\tPolysel in %s", utils.str_time(result['duration']))
 
-        if parameters.myparams({"collect_cputime": str}, ['tasks', 'polyselect']).get("collect_cputime"):
+        if parameters.myparams({"collect_cputime": [str]}, ['tasks', 'polyselect']).get("collect_cputime"):
             logger.info("--- Collecting polysel cumulative CPUTime ---")
             polysel_slurm_outfile = str(os.path.join(workdir, name + ".slurm_polysel"))
             result['cputime'] = utils.slurm_cpu_time_end(polysel_offset, polysel_slurm_outfile)
@@ -417,7 +417,7 @@ def do_sieve(parameters, polysel_result):
         result['duration'] = sieve_finish - sieve_start
         logger.info("\tSieving in %s", utils.str_time(result['duration']))
 
-        if parameters.myparams({"collect_cputime": str}, ['tasks', 'sieve']).get("collect_cputime"):
+        if parameters.myparams({"collect_cputime": [str]}, ['tasks', 'sieve']).get("collect_cputime"):
             logger.info("--- Collecting sieving cumulative CPUTime ---")
             sieving_slurm_outfile = str(os.path.join(workdir, name + ".slurm_sieving"))
             result['cputime'] = utils.slurm_cpu_time_end(sieving_offset, sieving_slurm_outfile)
