@@ -388,10 +388,13 @@ def do_polysel(parameters):
         result['duration'] = poly_finish - poly_start
         logger.info("\tPolysel in %s", utils.str_time(result['duration']))
 
-        logger.info("--- Collecting polysel cumulative CPUTime ---")
-        polysel_slurm_outfile = str(os.path.join(workdir, name + ".slurm_polysel"))
-        result['cputime'] = utils.slurm_cpu_time_end(polysel_offset, polysel_slurm_outfile)
-        logger.info("\tPolysel cumulative CPUTime %s" % utils.str_time(result['cputime']))
+        if parameters.myparams({"collect_cputime": str}, ['tasks', 'polyselect']).get("collect_cputime"):
+            logger.info("--- Collecting polysel cumulative CPUTime ---")
+            polysel_slurm_outfile = str(os.path.join(workdir, name + ".slurm_polysel"))
+            result['cputime'] = utils.slurm_cpu_time_end(polysel_offset, polysel_slurm_outfile)
+            logger.info("\tPolysel cumulative CPUTime %s" % utils.str_time(result['cputime']))
+        else:
+            result['cputime'] = 0
         
         checkpoint_stage('polysel', result)
     else:
@@ -414,10 +417,13 @@ def do_sieve(parameters, polysel_result):
         result['duration'] = sieve_finish - sieve_start
         logger.info("\tSieving in %s", utils.str_time(result['duration']))
 
-        logger.info("--- Collecting sieving cumulative CPUTime ---")
-        sieving_slurm_outfile = str(os.path.join(workdir, name + ".slurm_sieving"))
-        result['cputime'] = utils.slurm_cpu_time_end(sieving_offset, sieving_slurm_outfile)
-        logger.info("\tSieving cumulative CPUTime %s" % utils.str_time(result['cputime']))
+        if parameters.myparams({"collect_cputime": str}, ['tasks', 'sieve']).get("collect_cputime"):
+            logger.info("--- Collecting sieving cumulative CPUTime ---")
+            sieving_slurm_outfile = str(os.path.join(workdir, name + ".slurm_sieving"))
+            result['cputime'] = utils.slurm_cpu_time_end(sieving_offset, sieving_slurm_outfile)
+            logger.info("\tSieving cumulative CPUTime %s" % utils.str_time(result['cputime']))
+        else:
+            result['cputime'] = 0
 
         relation_files_file = str(os.path.join(workdir, name + '.relation_files'))
         logger.info("Saving used relation files from this run to %s", relation_files_file)

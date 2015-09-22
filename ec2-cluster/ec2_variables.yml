@@ -4,18 +4,18 @@ ansible_ssh_private_key_file: "~/.ssh/id_rsa_{{ ec2.ssh_key }}"
 
 # Parameters specific to ec2
 ec2:
-	device_name: /dev/sda1
-	security_group: faas
-	placement_group: faas-cluster
-	ssh_key: faas
-	aws_region: us-east-1
-	aws_zone: us-east-1b
-	vpc_subnet_id: --replace--
-	vpc_id: --replace--
-	image_name: faas-image                      # the name to give to the newly created image
-	custom_image_id: ami-d9e15db2               # Dynamically updated when a new AMI is built
+    device_name: /dev/sda1
+    security_group: faas
+    placement_group: faas-cluster
+    ssh_key: cado 
+    aws_region: us-east-1
+    aws_zone: us-east-1b
+    vpc_subnet_id: subnet-63335e48
+    vpc_id: vpc-960c4af3 
+    image_name: faas-image                      # the name to give to the newly created image
+    custom_image_id: ami-d9e15db2               # Dynamically updated when a new AMI is built
                                                 # using build-finish.yml. You can edit this manually too.
-	ami_description: cado-nfs, slurm, nfs, supervisor 
+    ami_description: cado-nfs, slurm, nfs, supervisor 
 
 # Source directory for installed packages on remote machines
 sourcedir: /usr/local/src
@@ -31,26 +31,26 @@ my_tag: faas                                    # change this tag to ensure that
                                                 # will have unique tags. This can be any 
                                                 # alphanumeric string.
 ami_builder:
-	tag: "{{ my_tag }}_ami_builder"
-	group: "tag_Name_{{ my_tag }}_ami_builder"
-	image: ami-d05e75b8                         # this is the base ubuntu 14.04 AMI that 
+    tag: "{{ my_tag }}_ami_builder"
+    group: "tag_Name_{{ my_tag }}_ami_builder"
+    image: ami-d05e75b8                         # this is the base ubuntu 14.04 AMI that 
                                                 # the custom image is built from
-	type: m4.large                              # must be an instance type that supports 
+    type: m4.large                              # must be an instance type that supports 
                                                 # enhanced networking
-	volume_size: 8
-	count: 1
+    volume_size: 8
+    count: 1
 
 # Parameters adjusting how the EC2 cluster is launched
 master:
-	tag: "{{ my_tag }}_master"
-	group: "tag_Name_{{ my_tag }}_master"
-	placement_group: "{{ ec2.placement_group }}"
-	image: "{{ ec2.custom_image_id }}"
-	type: c4.8xlarge
-	cores: 36
-	volume_size: 50
-	delete_volume_on_termination: no
-	private_ip: 10.0.2.5                        # Make sure that this IP address is in your EC2
+    tag: "{{ my_tag }}_master"
+    group: "tag_Name_{{ my_tag }}_master"
+    placement_group: "{{ ec2.placement_group }}"
+    image: "{{ ec2.custom_image_id }}"
+    type: c4.8xlarge
+    cores: 36
+    volume_size: 50
+    delete_volume_on_termination: no
+    private_ip: 10.0.2.5                        # Make sure that this IP address is in your EC2
                                                 # subnet and is not already taken by a node. The
                                                 # master node address will be baked into the EC2
                                                 # image so that nodes launched with the image will 
@@ -58,56 +58,56 @@ master:
                                                 # slurm and NFS. 
 
 mpi:
-	tag: "{{ my_tag }}_mpi"
-	group: "tag_Name_{{ my_tag }}_mpi"
-	placement_group: "{{ ec2.placement_group }}"
-	image: "{{ ec2.custom_image_id }}"
-	type: c4.8xlarge
-	cores: 36
-	volume_size: 8
-	count: 15
-	spot_price: 1.80
-	spot_wait_timeout: 1200                   
+    tag: "{{ my_tag }}_mpi"
+    group: "tag_Name_{{ my_tag }}_mpi"
+    placement_group: "{{ ec2.placement_group }}"
+    image: "{{ ec2.custom_image_id }}"
+    type: c4.8xlarge
+    cores: 36
+    volume_size: 8
+    count: 15
+    spot_price: 1.80
+    spot_wait_timeout: 1200                   
 
 slave:
-	tag: "{{ my_tag }}_slave"
-	group: "tag_Name_{{ my_tag }}_slave"
-	image: "{{ ec2.custom_image_id }}"
-	type: c4.8xlarge
-	cores: 36
-	volume_size: 8
-	count: 34
-	spot_price: 0.75
-	spot_wait_timeout: 1200
+    tag: "{{ my_tag }}_slave"
+    group: "tag_Name_{{ my_tag }}_slave"
+    image: "{{ ec2.custom_image_id }}"
+    type: c4.8xlarge
+    cores: 36
+    volume_size: 8
+    count: 34
+    spot_price: 0.75
+    spot_wait_timeout: 1200
 
 # Parameters for supervisor, a process manager that can be used to run the factorization.
 supervisor:
-	remote_conf: supervisord.conf
-	port: 9001
-	username: --username--                # username and password to access the supervisor http
-	                                      # server at <server-ip>:<supervisord_port>
-	password: --replace--
-	email: --replace--                    # supervisor will send crash reports to this address
+    remote_conf: supervisord.conf
+    port: 9001
+    username: username                # username and password to access the supervisor http
+                                          # server at <server-ip>:<supervisord_port>
+    password: replace
+    email: luke.valenta@gmail.com                    # supervisor will send crash reports to this address
 
 # These commands are run after the corresponding stages have completed, and can
 # be used to shut down EC2 instances, email intermediate or final results, 
 # or anything else. If you wish to run multiple commands, it is recommended that 
 # you copy a script to the master node and call the script here.
 commands:
-	post_sieve: 'ansible-playbook -i {{ repodir }}/ec2-cluster/ec2.py {{ repodir }}/ec2-cluster/terminate-cluster.yml --tags=slave'                           
-	post_linalg: 'ansible-playbook -i {{ repodir }}/ec2-cluster/ec2.py {{ repodir }}/ec2-cluster/terminate-cluster.yml --tags=mpi'                           
-	post_factor: 'ansible-playbook -i {{ repodir }}/ec2-cluster/ec2.py {{ repodir }}/ec2-cluster/stop-master.yml'                           
+    post_sieve: 'ansible-playbook -i {{ repodir }}/ec2-cluster/ec2.py {{ repodir }}/ec2-cluster/terminate-cluster.yml --tags=slave'                           
+    post_linalg: 'ansible-playbook -i {{ repodir }}/ec2-cluster/ec2.py {{ repodir }}/ec2-cluster/terminate-cluster.yml --tags=mpi'                           
+    post_factor: 'ansible-playbook -i {{ repodir }}/ec2-cluster/ec2.py {{ repodir }}/ec2-cluster/stop-master.yml'                           
 
 # Parameters specific to cado-nfs. To add more parameters to this list, edit
 # both the variables below and 'roles/factor/templates/cado_params.yml'.
 params_file_remote: /home/ubuntu/params.{{ cado.name }}
 cado:
-	name: slurm155
-	N: 12617458575301661623946633850938771797502749154937162308217317392296845516095043908426953372279272752145464175799696190139570782546328967811791210408888451
-	alim: 15246811
-	rlim: 31940624
-	lpbr: 28
-	lpba: 28
+    name: slurm155
+    N: 12617458575301661623946633850938771797502749154937162308217317392296845516095043908426953372279272752145464175799696190139570782546328967811791210408888451
+    alim: 15246811
+    rlim: 31940624
+    lpbr: 28
+    lpba: 28
     tasks:
         mpi: "8x8"
         polyselect: 
