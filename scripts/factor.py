@@ -76,7 +76,7 @@ def estimate_rels_wanted(parameters):
     d = {}
     td = p['target_density']
     n = len(str(p['N']))
-    if n == 155:
+    if n == 155 or n == 154: # 512-bit numbers can have either 154 or 155 digits
         if p['lpba'] == 28 and p['lpbr'] == 28:
             d = {
                     70: 28200000,
