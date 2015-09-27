@@ -73,6 +73,8 @@ class Polysel:
         logger.info("Submitting %d additional polysel1 tasks", len(task_commands))
 
         outputfiles = []
+        i = 0
+        num_submitted = 0
         for command, outputfile in task_commands:
             with open(batch_file, 'w') as f:
                 outputfiles.append(outputfile)
@@ -89,6 +91,14 @@ class Polysel:
             os.chmod(batch_file, 0o755)
             # TODO: use the stdout of sbatch to determine job IDs, and only continue when all of the jobs have finished.
             stdout = utils.run_command("sbatch " + batch_file)
+
+            # rate-limit job submission so slurm is not overwhelmed
+            if i >= 100:
+                logger.debug("Submitted %d/%d polysel1 jobs", num_submitted, len(task_commands))
+                time.sleep(1)
+                i = 0
+            num_submitted += 1
+            i += 1
 
         while (True):
             jobs_out = utils.run_command("squeue -t PENDING,RUNNING,COMPLETING").strip().split('\n')
@@ -181,6 +191,8 @@ class Polysel:
         outputfiles = []
         workdir = params.get('workdir')
 
+        i = 0
+        num_submitted = 0
         for command, outputfile in task_commands:
             with open(batch_file, 'w') as f:
                 outputfiles.append(outputfile)
@@ -197,6 +209,14 @@ class Polysel:
             os.chmod(batch_file, 0o755)
             # TODO: use the stdout of sbatch to determine job IDs, and only continue when all of the jobs have finished.
             stdout = utils.run_command("sbatch " + batch_file)
+
+            # rate-limit job submission so slurm is not overwhelmed
+            if i >= 100:
+                logger.debug("Submitted %d/%d polysel2 jobs", num_submitted, len(task_commands))
+                time.sleep(1)
+                i = 0
+            num_submitted += 1
+            i += 1
 
         while (True):
             jobs_out = utils.run_command("squeue -t PENDING,RUNNING,COMPLETING").strip().split('\n')
