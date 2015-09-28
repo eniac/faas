@@ -226,7 +226,7 @@ class Sieve:
             # return the relation count in this file
             return count
 
-        except (OSError, IOError) as e:
+        except Exception as e:
             logger.warning("Exception in file '%s': %s", filename, e)
 
         # This will be reached on an exception of if at least 10 relations do not check out
