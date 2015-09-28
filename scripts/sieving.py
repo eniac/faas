@@ -38,6 +38,8 @@ class Sieve:
         self.batch_size = params.get("batch_size")
 
         # variables that are accessed from multiple threads
+        self.stage = 'sieve' 
+        self.stage_lock = threading.Lock()
         self.finished = False
         self.finished_lock = threading.Lock()
         self.queue = deque()
@@ -261,6 +263,14 @@ class Sieve:
         self.seen_files.update(set(gz_files))
         return gz_files
 
+    def set_stage(self, stage):
+        with self.stage_lock:
+            self.stage = stage
+
+    def get_stage(self):
+        with self.stage_lock:
+            return self.stage
+
     def set_finished(self):
         with self.finished_lock:
             self.finished = True
@@ -287,7 +297,7 @@ class Sieve:
             os.remove(self.msieve_dat_file)
 
             with open(self.msieve_dat_file, 'wt', encoding='utf-8') as f:
-                f.write(self.parameters.myparams({'N': str}, [])['N'])
+                f.write(str(self.parameters.myparams({'N': int}, [])['N']))
                 f.write('\n')
 
         # check if we should import relations
@@ -381,23 +391,30 @@ class Sieve:
                 self.relation_files.append(filename)
                 new_files.append(filename)
                 logger.info("Found %d new relations in %s. Total %d/%d (%.2f%%)",\
-                            count, filename, self.rels_total, self.rels_wanted, 100 * self.rels_total / self.rels_wanted)
-                if self.rels_total >= self.rels_wanted:
-                    logger.info("Reached rels_wanted with %d/%d relations", self.rels_total, self.rels_wanted)
+                            count, filename, self.get_rels_total(), self.get_rels_wanted(), 100 * self.get_rels_total() / self.get_rels_wanted())
+                if self.get_rels_total() >= self.get_rels_wanted():
+                    logger.info("Reached rels_wanted with %d/%d relations", self.get_rels_total(), self.get_rels_wanted())
                     # stop processing output files when we've reached our target
                     break
 
             if self.get_rels_total() >= self.get_rels_wanted():
+                self.set_stage('filter')
                 rels_additional = filtering.run(new_files)
                 new_files = []
-                if rels_additional == -1:
-                    rels_addtional = math.ceil(self.rels_wanted * 0.1)
-                if rels_additional == -2:
-                    self.completed_factorization = True
-                    break
-                self.set_rels_wanted(self.get_rels_wanted() +  rels_additional)
                 if rels_additional == 0:
                     break
+                elif rels_additional == -1:
+                    rels_addtional = math.ceil(self.get_rels_wanted() * 0.1)
+                elif rels_additional == -2:
+                    self.completed_factorization = True
+                    break
+                elif rels_additional > 0:
+                    self.set_rels_wanted(self.get_rels_wanted() +  rels_additional)
+                else:
+                    logger.error('unexpected value for rels_additional: ', rels_additional)
+                    sys.exit(1)
+            else:
+                self.set_stage('sieve')
             sleep(10)
         self.set_finished()
 
@@ -405,15 +422,20 @@ class Sieve:
         while not self.is_finished():
 
             # give the user a status update
-            elapsed = time.time() - self.start_time
-            rels_total = self.get_rels_total()
-            rels_wanted = self.get_rels_wanted()
+            stage = self.get_stage()
+            if stage == 'sieve':
+                elapsed = time.time() - self.start_time
+                rels_total = self.get_rels_total()
+                rels_wanted = self.get_rels_wanted()
 
-            rate = rels_total / elapsed
-            eta = 0
-            if rate > 0:
-                eta = (rels_wanted - rels_total) / rate
-            logger.info("Status: %d/%d relations at %d rels/sec - elapsed: %s, ETA: %s", rels_total, rels_wanted, int(rate), utils.str_time(elapsed), utils.str_time(eta))
+                rate = rels_total / elapsed
+                eta = 0
+                if rate > 0:
+                    eta = (rels_wanted - rels_total) / rate
+                    logger.info("Status: %d/%d relations at %d rels/sec - elapsed: %s, ETA: %s", rels_total, rels_wanted, int(rate), utils.str_time(elapsed), utils.str_time(eta))
+            elif stage == 'filter':
+                logger.info("Status: performing filtering")
+                    
             sleep(10)
     
     def run_factor_base(self):
