@@ -72,7 +72,7 @@ def setup_logging(workdir, name):
     #cmd_logger.addHandler(console_handler)
 
 def estimate_rels_wanted(parameters):
-    p = parameters.myparams({'lpba':int,'lpbr':int,'target_density':int, 'N':int}, ['tasks', 'filter'])
+    p = parameters.myparams({'lpba':int,'lpbr':int,'target_density':int, 'N':int}, ['tasks', 'msieve'])
     d = {}
     td = p['target_density']
     n = len(str(p['N']))
