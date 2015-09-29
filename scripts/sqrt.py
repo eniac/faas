@@ -2,6 +2,7 @@ import re
 import cadoparams
 import utils
 import os
+import sys
 
 import logging
 logger = logging.getLogger('Sqrt')
