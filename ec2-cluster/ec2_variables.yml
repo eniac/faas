@@ -167,8 +167,9 @@ cado:
             ncurves1: 15
             qrange: 2500
         I: 14
-        filter:
+        msieve:
             target_density: 120
+        filter:
             threads: "{{ master.cores }}"
             purge: 
                 keep: 160
