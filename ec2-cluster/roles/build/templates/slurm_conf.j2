@@ -3,9 +3,6 @@
 # See the slurm.conf man page for more information.
 #
 {% set master_private_hostname = (master.private_ip | regex_replace('^(.*)\\.(.*)\\.(.*)\\.(.*)$', 'ip-\\1-\\2-\\3-\\4' )) %}
-{% set prefix = (master.private_ip | regex_replace('^(.*)\\.(.*)\\.(.*)\\.(.*)$', 'ip-\\1-\\2-\\3-' )) %}
-{% set octet = (master.private_ip | regex_replace('^(.*)\\.(.*)\\.(.*)\\.(.*)$', '\\4' )) %}
-
 ControlMachine={{ master_private_hostname }}
 #ControlAddr=
 #BackupController=
@@ -161,9 +158,9 @@ SlurmdLogFile=/var/log/slurm/slurmd.log
 # COMPUTE NODES 
 
 # We assign the master node half the cores, since otherwise if might be overloaded.
-NodeName={{ master_private_hostname }} CPUs={{ ((master.cores / 2)|int) }} State=UNKNOWN
-NodeName={{ [prefix, '[0-', (octet|int - 1), ']']|join('') }} CPUs={{ slave.cores }} State=UNKNOWN
-NodeName={{ [prefix, '[',(octet|int + 1), '-255]']|join('') }} CPUs={{ slave.cores }} State=UNKNOWN
+{% for node in slurm.nodes %}
+NodeName={{ node.name }} CPUs={{ node.cpus }} State=UNKNOWN
+{% endfor %}
 
 # PARTITIONS
-PartitionName=factor Nodes={{ [prefix, '[0-255]']|join('') }} Default=YES Shared=YES:2 MaxTime=INFINITE State=UP
+PartitionName=factor Nodes={{ slurm.nodes|map(attribute='name')|join(',') }} Default=YES Shared=YES:2 MaxTime=INFINITE State=UP

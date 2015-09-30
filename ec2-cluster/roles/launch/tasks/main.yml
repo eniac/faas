@@ -7,18 +7,19 @@
   ec2:
     key_name: "{{ ec2.ssh_key }}"
     aws_region: "{{ ec2.aws_region }}"
-    zone: "{{ ec2.aws_zone }}"
+    zone: "{{ launch_group.zone|default(instance.zone) }}"
     image: "{{ instance.image }}"
-    vpc_subnet_id: "{{ ec2.vpc_subnet_id }}"
+    vpc_subnet_id: "{{ launch_group.vpc_subnet_id|default(instance.vpc_subnet_id) }}"
     instance_type: "{{ instance.type }}"
     group: "{{ ec2.security_group }}"
     placement_group: "{{ instance.placement_group|default('') }}"
-    exact_count: "{{ instance.count|default(1) }}"
+    exact_count: "{{ launch_group.count|default(instance.count|default(1)) }}"
     private_ip: "{{ instance.private_ip|default('') }}"
     count_tag: 
-      Name: "{{ instance.tag }}"
+      launch_group: "{{ launch_group.tag|default(instance.tag) }}"
     instance_tags:
       Name: "{{ instance.tag }}"
+      launch_group: "{{ launch_group.tag|default(instance.tag) }}"
     volumes:
     - device_name: "{{ ec2.device_name }}"
       volume_size: "{{ instance.volume_size }}" 

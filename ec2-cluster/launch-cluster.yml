@@ -5,6 +5,9 @@
   vars_files:
    - ec2_variables.yml
   roles:
-   - { role: launch, instance: '{{ master }}', tags: ['master'] }
-   - { role: launch, instance: '{{ mpi }}', tags: ['mpi'] }
-   - { role: launch, instance: '{{ slave }}', tags: ['slave'] }
+   - { role: launch, instance: '{{ master }}', launch_group: {}, tags: ['master'] }
+   - { role: launch, instance: '{{ mpi }}', launch_group: {}, tags: ['mpi'] }
+   - { role: launch, instance: '{{ slave }}', launch_group: "{{ slave.launch_groups.group1 }}", tags: ['slave1'] }
+   - { role: launch, instance: '{{ slave }}', launch_group: "{{ slave.launch_groups.group2 }}", tags: ['slave2'] }
+   - { role: launch, instance: '{{ slave }}', launch_group: "{{ slave.launch_groups.group3 }}", tags: ['slave3'] }
+   - { role: launch, instance: '{{ slave }}', launch_group: "{{ slave.launch_groups.group4 }}", tags: ['slave4'] }

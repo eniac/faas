@@ -1,20 +1,33 @@
 # SSH connections to remote hosts will use these parameters
 ansible_ssh_user: ubuntu
-ansible_ssh_private_key_file: "~/.ssh/id_rsa_{{ ec2.ssh_key }}"
+ansible_ssh_private_key_file: "~/.ssh/{{ ec2.ssh_key }}.pem"
 
 # Parameters specific to ec2
 ec2:
     device_name: /dev/sda1
     security_group: faas
     placement_group: faas-cluster
-    ssh_key: cado 
+    ssh_key: faas 
     aws_region: us-east-1
-    aws_zone: us-east-1b
-    vpc_subnet_id: --replace--
-    vpc_id: --replace--
-    image_name: faas-image                      # the name to give to the newly created image
-    custom_image_id: ami-d9e15db2               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too.
+    vpc_id: vpc-12e03776
+    vpc_subnet: 10.0.0.0/20                     # The subnet for the VPC (for the network file system)
+    
+    image_name: faas-image                      # The name to give to the newly created image
+    custom_image_id: ami-dfccb7ba               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too.
     ami_description: cado-nfs, slurm, nfs, supervisor 
+
+# Specify slurm-specific settings here
+slurm:
+    partition_name: factor
+    nodes:                                      # Specify the nodename entries in slurm.conf, 
+                                                # which should included the set of all possible 
+                                                # private IP addresses in the VPC subnets. We 
+                                                # give the master node half the cores to make 
+                                                # sure that it isn't overloaded. 
+     - {name: "ip-10-0-0-4", cpus: "{{ (master.cores / 2 )|int }}" }
+     - {name: "ip-10-0-0-[5-254]", cpus: "{{ slave.cores }}" }
+     - {name: "ip-10-0-[1-3]-[4-254]", cpus: "{{ slave.cores }}" }
+    
 
 # Source directory for installed packages on remote machines
 sourcedir: /usr/local/src
@@ -49,7 +62,9 @@ master:
     cores: 36
     volume_size: 50
     delete_volume_on_termination: no
-    private_ip: 10.0.2.5                        # Make sure that this IP address is in your EC2
+    vpc_subnet_id: subnet-84f4acaf
+    zone: us-east-1b
+    private_ip: 10.0.0.4                        # Make sure that this IP address is in your EC2
                                                 # subnet and is not already taken by a node. The
                                                 # master node address will be baked into the EC2
                                                 # image so that nodes launched with the image will 
@@ -64,29 +79,56 @@ mpi:
     type: c4.8xlarge
     cores: 36
     volume_size: 8
-    count: 15
-    spot_price: 1.80
+    count: 63
+    count: 1
+    spot_price: 2.40
     spot_wait_timeout: 1200                   
+    zone: "{{ master.zone }}"
+    vpc_subnet_id: "{{ master.vpc_subnet_id }}"
+
 
 slave:
     tag: "{{ my_tag }}_slave"
     group: "tag_Name_{{ my_tag }}_slave"
     image: "{{ ec2.custom_image_id }}"
-    type: c4.8xlarge
     cores: 36
+#    type: t2.micro
+    type: c4.8xlarge
     volume_size: 8
-    count: 34
-    spot_price: 0.75
+    spot_price: 1.80
     spot_wait_timeout: 1200
+
+    launch_groups:
+        group1:
+            tag: "{{ my_tag }}_slave_group1"
+            zone: us-east-1b
+            vpc_subnet_id: subnet-84f4acaf
+            count: 0
+        group2:
+            tag: "{{ my_tag }}_slave_group2"
+            zone: us-east-1c
+            vpc_subnet_id: subnet-c4f9e9b3
+            count: 45
+        group3:
+            tag: "{{ my_tag }}_slave_group3"
+            zone: us-east-1d
+            vpc_subnet_id: subnet-4cf5df15
+            count: 45
+        group4:
+            tag: "{{ my_tag }}_slave_group4"
+            zone: us-east-1e
+            vpc_subnet_id: subnet-24de1219
+            count: 46
+
 
 # Parameters for supervisor, a process manager that can be used to run the factorization.
 supervisor:
     remote_conf: supervisord.conf
     port: 9001
-    username: --replace--                 # username and password to access the supervisor http
+    username: username                # username and password to access the supervisor http
                                           # server at <server-ip>:<supervisord_port>
-    password: --replace--
-    email: --replace--                    # supervisor will send crash reports to this address
+    password: password
+    email: luke.valenta@gmail.com                    # supervisor will send crash reports to this address
 
 # These commands are run after the corresponding stages have completed, and can
 # be used to shut down EC2 instances, email intermediate or final results, 
@@ -108,7 +150,7 @@ cado:
     lpbr: 28
     lpba: 28
     tasks:
-        mpi: "8x8"
+        mpi: "16x16"
         polyselect: 
             threads: 2
             degree: 5

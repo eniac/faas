@@ -324,5 +324,7 @@ def run(relation_files):
 
     return new_rels_wanted
 
-run.do_cado_filtering = True
-run.do_msieve_filtering = False
+#run.do_cado_filtering = True
+#run.do_msieve_filtering = False
+run.do_cado_filtering = False
+run.do_msieve_filtering = True
