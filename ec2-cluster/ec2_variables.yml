@@ -13,7 +13,7 @@ ec2:
     vpc_subnet: 10.0.0.0/20                     # The subnet for the VPC (for the network file system)
     
     image_name: faas-image                      # The name to give to the newly created image
-    custom_image_id: ami-dfccb7ba               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too.
+    custom_image_id: ami-bf89cdda               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too.
     ami_description: cado-nfs, slurm, nfs, supervisor 
 
 # Specify slurm-specific settings here
@@ -80,7 +80,6 @@ mpi:
     cores: 36
     volume_size: 8
     count: 63
-    count: 1
     spot_price: 2.40
     spot_wait_timeout: 1200                   
     zone: "{{ master.zone }}"
