@@ -1,4 +1,11 @@
 ---
+
+# Increase system limits
+- lineinfile: dest='/proc/sys/fs/file-max' regexp='^\d' line='65536'
+- lineinfile: dest='/proc/sys/net/ipv4/tcp_max_syn_backlog' regexp='^\d' line='8192'
+- lineinfile: dest='/proc/sys/net/core/somaxconn' regexp='^\d' line='4096'
+
+
 # Install munge
 - name: install libmunge-dev
   apt: name=libmunge-dev
