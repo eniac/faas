@@ -3,4 +3,4 @@
   vars_files:
    - ec2_variables.yml
   roles:
-   - { role: launch, instance: '{{ ami_builder }}' }
+   - { role: launch, instance: '{{ ami_builder }}', launch_group: {} }
