@@ -362,6 +362,7 @@ void logprintf(msieve_obj *obj, char *fmt, ...) {
 	if (obj->flags & MSIEVE_FLAG_LOG_TO_STDOUT) {
 		va_start(ap, fmt);
 		vfprintf(stdout, fmt, ap);
+        fflush(stdout);
 		va_end(ap);
 	}
 }
