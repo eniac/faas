@@ -8,7 +8,6 @@ This section shows you how to quickly get set up to factor a number. For a more 
 
 1.  Set up command machine (e.g., your workstation)
 Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro_installation.html#installation)
-
 Set up and configure AWS CLI using these [instructions](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html)
 
 2. Configure AWS (Amazon Web Services) environment
