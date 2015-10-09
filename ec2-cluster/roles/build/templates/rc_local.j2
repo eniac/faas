@@ -12,9 +12,9 @@
 # By default this script does nothing.
 
 # Configure NFS (this script should be dynamically created when the AMI is built)
-{% set master_private_hostname = (master.private_ip | regex_replace('^(.*)\\.(.*)\\.(.*)\\.(.*)$', 'ip-\\1-\\2-\\3-\\4' )) %}
+{% set master_private_hostname = (ec2.master_private_ip | regex_replace('^(.*)\\.(.*)\\.(.*)\\.(.*)$', 'ip-\\1-\\2-\\3-\\4' )) %}
 if [ `hostname -s` = "{{ master_private_hostname }}" ]; then
-    line="{{ workdir }}             {{ ec2.vpc_subnet }}(rw,async,insecure,no_subtree_check)"
+    line="{{ workdir }}             {{ ec2.cidr_block }}(rw,async,insecure,no_subtree_check)"
     if ! grep -q '{{ workdir }}' /etc/exports; then
         echo "$line" | sudo tee -a /etc/exports > /dev/null
     fi
@@ -22,6 +22,7 @@ if [ `hostname -s` = "{{ master_private_hostname }}" ]; then
 fi
 
 # Configure slurm
+sudo mkdir -p /run/munge
 sudo chown ubuntu:ubuntu /run/munge
 munged --force
 sudo mkdir -p -m 755 /run/slurm

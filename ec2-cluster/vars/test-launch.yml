@@ -1,0 +1,41 @@
+---
+# Launch parameters for cluster nodes
+master:
+    tag: "{{ my_tag }}_master"
+    group: "tag_Name_{{ my_tag }}_master"
+    placement_group: "{{ ec2.placement_group }}"
+    image: "{{ ec2.custom_image }}"
+    type: m4.large
+    cores: 2
+    volume_size: 50
+    delete_volume_on_termination: no
+    vpc_subnet_id: '{{ ec2.subnets.0.subnet_id }}'
+    zone: '{{ ec2.subnets.0.availability_zone }}'
+    private_ip: '{{ ec2.master_private_ip }}'
+
+mpi:
+    tag: "{{ my_tag }}_mpi"
+    group: "tag_Name_{{ my_tag }}_mpi"
+    placement_group: "{{ ec2.placement_group }}"
+    image: "{{ ec2.custom_image }}"
+    type: m4.large
+    cores: 2
+    count: 1
+    spot_price: 0.05
+    spot_wait_timeout: 1200                   
+    zone: "{{ master.zone }}"
+    vpc_subnet_id: "{{ master.vpc_subnet_id }}"
+
+slave:
+    tag: "{{ my_tag }}_slave"
+    group: "tag_Name_{{ my_tag }}_slave"
+    image: "{{ ec2.custom_image }}"
+    cores: 2
+    type: m4.large
+    spot_price: 0.05
+    spot_wait_timeout: 1200
+    launch_groups:
+     - { tag: "{{ my_tag }}_slave_0", zone: '{{ ec2.subnets.0.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.0.subnet_id }}', count: 1 }
+     - { tag: "{{ my_tag }}_slave_1", zone: '{{ ec2.subnets.1.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.1.subnet_id }}', count: 1 }
+     - { tag: "{{ my_tag }}_slave_2", zone: '{{ ec2.subnets.2.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.2.subnet_id }}', count: 1 }
+     - { tag: "{{ my_tag }}_slave_3", zone: '{{ ec2.subnets.3.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.3.subnet_id }}', count: 1 }

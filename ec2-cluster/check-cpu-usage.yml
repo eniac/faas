@@ -2,7 +2,9 @@
   hosts: "{{ master.group }}:{{ mpi.group }}:{{ slave.group }}"
   gather_facts: no
   vars_files:
-   - ec2_variables.yml
+   - vars/common.yml
+   - vars/ec2.yml
+   - vars/launch.yml
   tasks:
    - shell: top -bn2 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}'
      register: cpu_usage

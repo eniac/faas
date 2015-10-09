@@ -1,6 +1,7 @@
 ---
-# copy over tar file and install msieve (NOTE: MPI must already be installed)
-- unarchive: src=msieve-custom.tar.gz dest={{ sourcedir }}
+#- unarchive: src=msieve-custom.tar.gz dest={{ sourcedir }}
+# copy over and install msieve (NOTE: MPI must already be installed)
+- copy: src={{ faasdir }}/msieve-custom dest={{ sourcedir }}
   sudo: yes
 - command: chdir={{ sourcedir }}/msieve-custom make all NO_ZLIB=1 MPI=1
   sudo: yes

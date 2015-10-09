@@ -1,10 +1,12 @@
 ---
 
 # Increase system limits
-- lineinfile: dest='/proc/sys/fs/file-max' regexp='^\d' line='65536'
-- lineinfile: dest='/proc/sys/net/ipv4/tcp_max_syn_backlog' regexp='^\d' line='8192'
-- lineinfile: dest='/proc/sys/net/core/somaxconn' regexp='^\d' line='4096'
-
+- shell: echo 131072 | sudo tee /proc/sys/fs/file-max
+  sudo: yes
+- shell: echo 8192 | sudo tee /proc/sys/net/ipv4/tcp_max_syn_backlog
+  sudo: yes
+- shell: echo 4096 | sudo tee /proc/sys/net/core/somaxconn
+  sudo: yes
 
 # Install munge
 - name: install libmunge-dev
@@ -12,9 +14,6 @@
   sudo: yes
 - name: install munge
   apt: name=munge
-  sudo: yes
-- name: generate munge key
-  shell: no | /usr/sbin/create-munge-key
   sudo: yes
 - name: ensure that directories exist and have the correct permissions for munge
   file: state=directory owner=ubuntu recurse={{ item.recurse }} group=ubuntu mode={{ item.mode }} path={{ item.path }}
@@ -53,9 +52,6 @@
    - { path: /var/log/slurm, mode: 700 }
    - { path: /var/run/slurm, mode: 755 }
    - { path: /var/spool/slurm, mode: 755 }
-- name: copy over slurm configuration
-  template: src=slurm_conf.j2 dest=/usr/local/etc/slurm.conf
-  sudo: yes
 - name: configure slurm and munge daemons to launch on startup
   template: src=rc_local.j2 dest=/etc/rc.local
   sudo: yes

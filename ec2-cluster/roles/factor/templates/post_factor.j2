@@ -1,0 +1,7 @@
+#!/bin/bash
+
+echo "Emailing results"
+sendemail -f results@faas.com -m "Please see the log file for factorization results." -t luke.valenta@gmail.com -u "FACTORING FINISHED" -a "{{ workdir }}/{{ cado.name }}/{{ cado.name }}.log" -a "/home/ubuntu/server.stderr"
+
+echo "Stopping master node"
+ansible-playbook -i {{ faasdir_remote }}/ec2-cluster/ec2.py {{ faasdir_remote }}/ec2-cluster/stop-master.yml

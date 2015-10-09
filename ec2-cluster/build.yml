@@ -3,11 +3,22 @@
   hosts: "{{ ami_builder.group }}"
 #  sudo: yes
   vars_files:
-   - ec2_variables.yml
+   - vars/common.yml
+   - vars/build.yml
+   - vars/ec2.yml
+  pre_tasks:
+   - include_vars: vars/build.yml
+     when: test is not defined
+     tags:
+      - always
+   - include_vars: vars/test-build.yml
+     when: test is defined
+     tags:
+      - always
   roles: 
    - build
   
   post_tasks:
    # Set up enhanced networking last, since this requires that the nodes be stopped and started (usually with different IP addresses).
    - include: roles/build/tasks/setup-enhanced-networking.yml
-     tags: enhanced
+     tags: enhanced,base

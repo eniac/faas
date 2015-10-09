@@ -1,12 +1,8 @@
-# Must pass in a variable defining instance details when calling this role
-# For example, let 'master' be as defined in ec2_variables.yml
-# roles:
-#  - { role: launch, instance: '{{ master }}' }
 ---
 - name: Launch EC2 instance(s)
   ec2:
     key_name: "{{ ec2.ssh_key }}"
-    aws_region: "{{ ec2.aws_region }}"
+    region: "{{ ec2.region }}"
     zone: "{{ launch_group.zone|default(instance.zone) }}"
     image: "{{ instance.image }}"
     vpc_subnet_id: "{{ launch_group.vpc_subnet_id|default(instance.vpc_subnet_id) }}"
@@ -22,7 +18,7 @@
       launch_group: "{{ launch_group.tag|default(instance.tag) }}"
     volumes:
     - device_name: "{{ ec2.device_name }}"
-      volume_size: "{{ instance.volume_size }}" 
+      volume_size: "{{ instance.volume_size|default(8) }}" 
       delete_on_termination: "{{ instance.delete_volume_on_termination|default(true) }}"
     validate_certs: no
     assign_public_ip: yes

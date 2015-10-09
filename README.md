@@ -11,6 +11,8 @@ Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro
 
 Set up and configure AWS CLI using these [instructions](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html)
 
+Install GNU Parallel using these [instructions](http://www.gnu.org/software/parallel/)
+
 ## Configure AWS (Amazon Web Services) environment
 The following script will create a new AWS VPC (Virtual Private Cloud) configured for FaaS. 
 

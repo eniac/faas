@@ -1,11 +1,11 @@
 ---
 - command: supervisord -c "{{ supervisor.remote_conf }}"
   failed_when: no
-#- name: starting factoring job
-#  supervisorctl:
-#    name: 'server'
-#    state: started 
-#    server_url: "http://{{ inventory_hostname }}:{{ supervisor.port }}" 
-#    username: "{{ supervisor.username }}" 
-#    password: "{{ supervisor.password }}"
-#    config: "{{ supervisor.remote_conf }}"
+- name: starting factoring job
+  supervisorctl:
+    name: 'factor'
+    state: started 
+    server_url: "http://{{ inventory_hostname }}:{{ supervisor.port }}" 
+    username: "{{ supervisor.username }}" 
+    password: "{{ supervisor.password }}"
+    config: "{{ supervisor.remote_conf }}"

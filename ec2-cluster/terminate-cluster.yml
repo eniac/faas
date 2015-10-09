@@ -3,7 +3,9 @@
   hosts: localhost
   gather_facts: no
   vars_files: 
-   - ec2_variables.yml
+   - vars/common.yml
+   - vars/ec2.yml
+   - vars/launch.yml
   roles:
    - { role: terminate, instance: '{{ master }}', tags: ['master'] }
    - { role: terminate, instance: '{{ mpi }}', tags: ['mpi'] }

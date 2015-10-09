@@ -1,0 +1,24 @@
+---
+- name: launch ec2 instances
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+   - vars/common.yml
+   - vars/ec2.yml
+   - vars/launch.yml
+  pre_tasks:
+   - include_vars: vars/launch.yml
+     when: test is not defined
+     tags:
+      - always
+   - include_vars: vars/test-launch.yml
+     when: test is defined
+     tags:
+      - always
+  roles:
+   - { role: launch, instance: '{{ master }}', launch_group: {}, tags: ['master'] }
+   - { role: launch, instance: '{{ mpi }}', launch_group: {}, tags: ['mpi'] }
+   - { role: launch, instance: '{{ slave }}', launch_group: "{{ slave.launch_groups.0 }}", tags: ['slave0'] }
+   - { role: launch, instance: '{{ slave }}', launch_group: "{{ slave.launch_groups.1 }}", tags: ['slave1'] }
+   - { role: launch, instance: '{{ slave }}', launch_group: "{{ slave.launch_groups.2 }}", tags: ['slave2'] }
+   - { role: launch, instance: '{{ slave }}', launch_group: "{{ slave.launch_groups.3 }}", tags: ['slave3'] }

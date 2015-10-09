@@ -1,0 +1,20 @@
+# This file is created and will be overwritten by configure-aws.py.
+---
+ec2:
+    region: us-east-1
+    vpc_id: vpc-d3954eb7
+    cidr_block: 10.0.0.0/16
+    device_name: /dev/sda1
+    security_group: faas
+    placement_group: faas-cluster2
+    ssh_key: faas2
+#    base_image: ami-d05e75b8
+    base_image: ami-19642b7c
+    custom_image: ami-e1d39c84               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too.
+    image_name: faas image
+    master_private_ip: 10.0.0.4
+    subnets:
+        - { availability_zone: us-east-1b, subnet_id: subnet-83092ba8, cidr_block: 10.0.0.0/24 }
+        - { availability_zone: us-east-1c, subnet_id: subnet-a0d5ced7, cidr_block: 10.0.1.0/24 }
+        - { availability_zone: us-east-1d, subnet_id: subnet-f00c31a9, cidr_block: 10.0.2.0/24 }
+        - { availability_zone: us-east-1e, subnet_id: subnet-b7c6108a, cidr_block: 10.0.3.0/24 }

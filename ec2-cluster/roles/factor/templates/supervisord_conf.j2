@@ -15,8 +15,8 @@ serverurl=http://localhost:{{ supervisor.port }}
 username={{ supervisor.username }}
 password={{ supervisor.password }}
 
-[program:server]
-environment= PYTHONPATH="{{ sourcedir }}/cado-nfs/scripts/cadofactor:{{ repodir }}/slurm"
+[program:factor]
+environment= PYTHONPATH="{{ sourcedir }}/cado-nfs/scripts/cadofactor:{{ faasdir_remote }}/scripts"
 autostart=false
 autorestart=false
 startsecs=0
@@ -25,7 +25,7 @@ user=ubuntu
 directory=/home/ubuntu
 stdout_logfile=/home/ubuntu/server.stdout
 stderr_logfile=/home/ubuntu/server.stderr
-command=python3 {{ repodir }}/slurm/run.sh {{ params_file_remote }}
+command=python3 {{ faasdir_remote }}/scripts/factor.py {{ params_file_remote }}
 
 ; Send mail when the master server exits unexpectedly
 [eventlistener:crashmail]

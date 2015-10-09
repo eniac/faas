@@ -1,6 +1,8 @@
 - name: Launch EC2 instance
   hosts: localhost
   vars_files:
-   - ec2_variables.yml
+   - vars/common.yml
+   - vars/ec2.yml
+   - vars/build.yml
   roles:
    - { role: launch, instance: '{{ ami_builder }}', launch_group: {} }

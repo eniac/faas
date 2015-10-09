@@ -1,8 +1,16 @@
 ---
-- name: copy parameter files, pull faas scripts from repo, start supervisor daemon
-  hosts: "{{ master.group }}"
+- name: copy parameter files and scripts, start supervisor daemon, start factoring job
+  hosts: '{{ master.group }}'
   gather_facts: no
   vars_files:
-   - ec2_variables.yml
+   - vars/ec2.yml
+   - vars/common.yml
+   - vars/launch.yml
+  pre_tasks:
+   - include_vars: vars/factor.yml
+     when: test is not defined
+   - include_vars: vars/test-factor.yml
+     when: test is defined
+   - set_fact: params_file_remote='/home/ubuntu/params.{{ my_tag }}'
   roles:
    - factor

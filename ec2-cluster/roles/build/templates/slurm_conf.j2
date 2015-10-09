@@ -2,7 +2,7 @@
 # Put this file on all nodes of your cluster.
 # See the slurm.conf man page for more information.
 #
-{% set master_private_hostname = (master.private_ip | regex_replace('^(.*)\\.(.*)\\.(.*)\\.(.*)$', 'ip-\\1-\\2-\\3-\\4' )) %}
+{% set master_private_hostname = (ec2.master_private_ip | regex_replace('^(.*)\\.(.*)\\.(.*)\\.(.*)$', 'ip-\\1-\\2-\\3-\\4' )) %}
 ControlMachine={{ master_private_hostname }}
 #ControlAddr=
 #BackupController=
@@ -99,7 +99,7 @@ SchedulerPort=7321
 #SelectType=select/linear
 #SelectTypeParameters=
 SelectType=select/cons_res
-SelectTypeParameters=CR_CPU,CR_ONE_TASK_PER_CORE
+SelectTypeParameters=CR_CPU
 # 
 # 
 # JOB PRIORITY 
@@ -163,4 +163,4 @@ NodeName={{ node.name }} CPUs={{ node.cpus }} State=UNKNOWN
 {% endfor %}
 
 # PARTITIONS
-PartitionName=factor Nodes={{ slurm.nodes|map(attribute='name')|join(',') }} Default=YES Shared=YES:2 MaxTime=INFINITE State=UP
+PartitionName=factor Nodes={{ slurm.nodes|map(attribute='name')|join(',') }} Default=YES Shared=NO MaxTime=INFINITE State=UP

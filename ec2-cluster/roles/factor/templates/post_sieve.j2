@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "Terminating slave nodes"
+ansible-playbook -i {{ faasdir_remote }}/ec2-cluster/ec2.py {{ faasdir_remote }}/ec2-cluster/terminate-cluster.yml --tags=slave

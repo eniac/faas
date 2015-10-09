@@ -2,7 +2,7 @@
 
 # LTV
 # Last Edit: 10.07.15
-# Create and configure a VPC for faas
+# Create and configure a VPC for FaaS
 
 import subprocess
 import json
@@ -10,7 +10,6 @@ import shlex
 import os
 
 def run_command(command):
-    print(command)
     args = shlex.split(command)
     p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
@@ -19,7 +18,8 @@ def run_command(command):
 print('--- Starting AWS Configuration ---')
 
 # Create VPC (http://docs.aws.amazon.com/cli/latest/reference/ec2/create-vpc.html)
-vpc_id = json.loads(run_command('aws ec2 create-vpc --cidr-block 10.0.0.0/16')[0])['Vpc']['VpcId']
+cidr_block = '10.0.0.0/16'
+vpc_id = json.loads(run_command('aws ec2 create-vpc --cidr-block {cidr_block}'.format(cidr_block=cidr_block))[0])['Vpc']['VpcId']
 print("Created VPC {vpc_id}".format(vpc_id=vpc_id))
 
 # Create Internet Gateway (http://docs.aws.amazon.com/cli/latest/reference/ec2/create-internet-gateway.html)
@@ -78,4 +78,27 @@ with open(key_file, 'w') as f:
     f.write(key_str)
 os.chmod(key_file, 0o600)
 print('Created key pair {key_pair} at {key_file}'.format(key_pair=key_pair, key_file=key_file))
+
+# Write variables to file in yaml format
+var_file = 'vars/ec2.yml'
+print('Writing EC2 variables to file {var_file}'.format(var_file=var_file))
+with open(var_file, 'w') as f:
+    f.write('# This file is created and will be overwritten by configure-aws.py.\n')
+    f.write('---\n')
+    f.write('ec2:\n')
+    f.write('    region: us-east-1\n')
+    f.write('    vpc_id: {vpc_id}\n'.format(vpc_id=vpc_id))
+    f.write('    cidr_block: {cidr_block}\n'.format(cidr_block=cidr_block))
+    f.write('    device_name: /dev/sda1\n')
+    f.write('    security_group: {sg_name}\n'.format(sg_name=sg_name))
+    f.write('    placement_group: {placement_group}\n'.format(placement_group=placement_group))
+    f.write('    ssh_key: {key_pair}\n'.format(key_pair=key_pair))
+    f.write('    base_image: ami-d05e75b8\n') # ami-d05e75b8
+    f.write('    custom_image: \'\'\n')
+    f.write('    image_name: faas image\n')
+    f.write('    master_private_ip: 10.0.0.4\n')
+    f.write('    subnets:\n')
+    for sn in vpc_subnets:
+        f.write('        - {{ availability_zone: {az}, subnet_id: {sn_id}, cidr_block: {cidr} }}\n'.format(az=sn['AvailabilityZone'], sn_id=sn['SubnetId'], cidr=sn['CidrBlock']))
+
 print('--- Finished AWS Configuration ---')

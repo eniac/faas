@@ -2,30 +2,36 @@
 - name: Create AMI from running instance and terminate instance upon completion
   hosts: localhost
   vars_files:
-    - ec2_variables.yml
+    - vars/common.yml
+    - vars/ec2.yml
+    - vars/build.yml
   tasks:
     - name: Remove previous custom image (if it exists)
       ec2_ami:
         state: absent
-        region: "{{ ec2.aws_region }}"
-        image_id: "{{ ec2.custom_image_id }}"
+        region: "{{ ec2.region }}"
+        image_id: "{{ ec2.custom_image }}"
       failed_when: false
 
     - name: Create AMI from temporary instance
       ec2_ami:
-        name: "{{ ec2.image_name }}.{{ ansible_date_time.iso8601|replace(':', '-') }}"
+        name: "faas.{{ ansible_date_time.iso8601|replace(':', '-') }}"
         state: present
-        region: "{{ ec2.aws_region }}"
-        description: "{{ ec2.ami_description }}" 
+        region: "{{ ec2.region }}"
+        description: "slurm, NFS, supervisor, cado-nfs, msieve" 
         wait: yes
+        wait_timeout: 1200
         instance_id: "{{ hostvars[groups[ami_builder.group][0]].ec2_id }}"
       register: ami_output
+      tags: always
 
-    - name: Copy the new image id to the ec2_variables file  
-      lineinfile: 'dest=./ec2_variables.yml state=present regexp="^    custom_image_id" line="  custom_image_id: {{ ami_output.image_id }}               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too."'
+    - name: Copy the new image id to the variables file  
+      lineinfile: 'dest=vars/ec2.yml state=present regexp="^    custom_image" line="    custom_image: {{ ami_output.image_id }}               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too."'
+      tags: custom
 
     - name: Terminate temporary instance
       ec2:
         state: absent
-        region: "{{ ec2.aws_region }}"
+        region: "{{ ec2.region }}"
         instance_ids: "{{ hostvars[groups[ami_builder.group][0]].ec2_id }}"
+      tags: always

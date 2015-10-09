@@ -1,0 +1,15 @@
+# Specify slurm-specific settings here
+slurm:
+    partition_name: factor
+# The slurm nodes 
+    nodes:                                      
+     - { name: "ip-10-0-[0-3]-[4-254]", cpus: 36 }
+
+ami_builder:
+    tag: "{{ my_tag }}_ami_builder"
+    group: "tag_Name_{{ my_tag }}_ami_builder"
+    image: '{{ ec2.base_image }}'
+    # Must be an instance type that supports enhanced networking (?)
+    type: m4.large
+    vpc_subnet_id: "{{ ec2.subnets.0.subnet_id }}"
+    zone: "{{ ec2.subnets.0.availability_zone }}"

@@ -155,9 +155,10 @@ def set_static_parameters(parameters):
             "tasks.msieve.linalg.phys_socks_per_machine = %d" % spm,
             "tasks.msieve.linalg.phys_core_per_sock = %d" % cps,
             "tasks.msieve.linalg.threads_per_core = %d" % tpc,
-            "tasks.msieve.filter.threads = %d" % int(tpc*cps*spm),
-            "tasks.msieve.linalg.threads = %d" % int(math.floor(tpc*cps*spm / math.ceil(mpi_rows*mpi_cols / len(mpi_hosts)))),
-            "tasks.msieve.sqrt.threads = %d" % min(8, int(cps*spm)), # limit threads until pthread_create bug is resolved
+            "tasks.filter.threads = %d" % max(int(tpc*cps*spm),36),
+            "tasks.msieve.filter.threads = %d" % max(int(tpc*cps*spm),36),
+            "tasks.msieve.linalg.threads = %d" % int((math.floor(tpc*cps*spm / math.ceil(mpi_rows*mpi_cols) / len(mpi_hosts)))),
+            "tasks.msieve.sqrt.threads = %d" % max(int(tpc*cps*spm),36),
             ]
 
     parameters.readparams(new_params)

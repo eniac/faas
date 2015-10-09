@@ -4,16 +4,19 @@
   tags: params
 - copy: src=~/.boto dest=/home/ubuntu/.boto
   tags: boto
-- file: state=absent path={{ repodir }}
-  tags: git
-- git:
-    repo: 'git@github.com:eniac/faas.git'
-    dest: '{{ repodir }}'
-    accept_hostkey: yes
-    clone: yes
-    update: yes
-    force: yes
-  tags: git
+- file: state=directory dest={{ faasdir_remote }} owner=ubuntu group=ubuntu
+  sudo: yes
+  tags: faas
+- copy: src={{ faasdir }}/scripts dest={{ faasdir_remote }}
+  tags: faas
+- copy: src={{ faasdir }}/ec2-cluster dest={{ faasdir_remote }} 
+  tags: faas
+- file: mode=0755 state=file path={{ faasdir_remote }}/ec2-cluster/ec2.py
+- template: mode=0755 src=post_sieve.j2 dest={{ faasdir_remote }}/scripts/post_sieve.sh
+- template: mode=0755 src=post_linalg.j2 dest={{ faasdir_remote }}/scripts/post_linalg.sh
+- template: mode=0755 src=post_factor.j2 dest={{ faasdir_remote }}/scripts/post_factor.sh
+
+# Supervisor
 - template: src=supervisord_conf.j2 dest=/home/ubuntu/supervisord.conf
   tags: supervisor
 - name: launch factoring job

@@ -316,14 +316,15 @@ def run(relation_files):
         logger.info('Purge: %d additional rels requested', new_rels_wanted)
         if new_rels_wanted == 0:
             run.do_cado_filtering = False
-            logger.info("--- Finished Cado filtering ---")
             run.do_msieve_filtering = True
+            logger.info("--- Finished Cado filtering ---")
 
     if run.do_msieve_filtering:
         new_rels_wanted = run_msieve_filter()
 
     return new_rels_wanted
 
+# TODO: re-enable cado filtering
 #run.do_cado_filtering = True
 #run.do_msieve_filtering = False
 run.do_cado_filtering = False

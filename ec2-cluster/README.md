@@ -3,12 +3,12 @@ Last updated 08/22/2015
 
 Overview:
 
-    The purpose of these Ansible playbooks are to do the following:
+The purpose of these Ansible playbooks are to do the following:
 
-        1. Build a custom AMI for the EC2 environment.
-        2. Launch an EC2 cluster configured with slurm and NFS.
-        3. Create a custom cado-nfs parameter file and copy to master node.
-        4. Start a factoring job monitored using supervisor.
+    1. Build a custom AMI for the EC2 environment.
+    2. Launch an EC2 cluster configured with slurm and NFS.
+    3. Create a custom cado-nfs parameter file and copy to master node.
+    4. Start a factoring job monitored using supervisor.
 
 Instructions:
 
