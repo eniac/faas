@@ -174,6 +174,9 @@ class Sieve:
                 logger.debug("Submitted %d/%d sieve jobs", num_submitted, len(jobs))
                 #time.sleep(1)
                 i = 0
+                if self.is_finished():
+                    return
+
             num_submitted += 1
             i += 1
 
