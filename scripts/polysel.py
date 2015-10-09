@@ -95,7 +95,7 @@ class Polysel:
             # rate-limit job submission so slurm is not overwhelmed
             if i >= 100:
                 logger.debug("Submitted %d/%d polysel1 jobs", num_submitted, len(task_commands))
-                time.sleep(1)
+                #time.sleep(1)
                 i = 0
             num_submitted += 1
             i += 1
@@ -213,7 +213,7 @@ class Polysel:
             # rate-limit job submission so slurm is not overwhelmed
             if i >= 100:
                 logger.debug("Submitted %d/%d polysel2 jobs", num_submitted, len(task_commands))
-                time.sleep(1)
+                #time.sleep(1)
                 i = 0
             num_submitted += 1
             i += 1

@@ -172,7 +172,7 @@ class Sieve:
             # rate-limit job submission so slurm is not overwhelmed
             if i >= 100:
                 logger.debug("Submitted %d/%d sieve jobs", num_submitted, len(jobs))
-                time.sleep(1)
+                #time.sleep(1)
                 i = 0
             num_submitted += 1
             i += 1

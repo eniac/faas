@@ -172,13 +172,16 @@ def set_dynamic_parameters(parameters):
         alloc_cores = int(info[0])
         free_cores = int(info[1])
         num_cores = alloc_cores + free_cores
-        parameters.readparams(['batch_size=%d' % num_cores])
+        parameters.readparams(['tasks.batch_size=%d' % num_cores])
         logger.info("Batch size unspecified. Setting batch_size = #cores (%d)", num_cores)
+        # Limit the polyselect batch size, since more cores don't seem to matter at this point
+        parameters.readparams(['tasks.polyselect.batch_size=%d' % min(1000,num_cores)])
 
     # Set the adrange and nrkeep parameters to match batch_size
     admax = parameters.myparams({'admax': int}, ['tasks', 'polyselect'])['admax']
-    adrange = int(math.ceil(int(admax)/num_cores))
-    parameters.readparams(['tasks.polyselect.adrange=%d' % adrange, 'tasks.polyselect.nrkeep=%d' % num_cores])
+    polysel_batch = parameters.myparams({'batch_size': int}, ['tasks', 'polyselect'])['batch_size']
+    adrange = int(math.ceil(int(admax)/polysel_batch))
+    parameters.readparams(['tasks.polyselect.adrange=%d' % adrange, 'tasks.polyselect.nrkeep=%d' % polysel_batch])
     logger.info("Setting adrange = admax/#cores (%d), and nrkeep = #cores (%d)", adrange, num_cores)
 
     return parameters
