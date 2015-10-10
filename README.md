@@ -42,7 +42,7 @@ Run the following script to build a new AMI, launch a cluster, and factor the 51
     >$ ./factor.sh
 
 ### Collect results
-If all goes to plan, you will recieve an email with the results of the factorization. However, this is research code, and things do not always work as planned :).  
+If all goes to plan, you will recieve an email with the results of the factorization. However, this is research code, and things do not always go as planned :).  
 
 By default, the master node will be stopped (not terminated) after the factorization has completed so that the relevant log files will not be deleted. This will continue to use resources on your Amazon account until the node is terminated. 
 
