@@ -3,8 +3,9 @@
   hosts: '{{ master.group }}'
   gather_facts: no
   vars_files:
-   - vars/ec2.yml
+   - vars/custom.yml
    - vars/common.yml
+   - vars/ec2.yml
    - vars/launch.yml
   pre_tasks:
    - include_vars: vars/factor.yml

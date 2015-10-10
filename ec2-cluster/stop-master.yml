@@ -3,6 +3,7 @@
   gather_facts: no
   hosts: localhost
   vars_files: 
+   - vars/custom.yml
    - vars/common.yml
    - vars/ec2.yml
    - vars/launch.yml

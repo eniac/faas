@@ -9,7 +9,7 @@ set -e
 ansible-playbook -i ./ec2.py build-start.yml
 
 ## Build image
-ansible-playbook -i ./ec2.py build.yml --tags custom
+ansible-playbook -i ./ec2.py build.yml --tags custom --extra-vars="test=yes"
 
 ## Create AMI from running instance and then terminate instance
 ansible-playbook -i ./ec2.py build-finish.yml 
@@ -17,11 +17,11 @@ ansible-playbook -i ./ec2.py build-finish.yml
 # Launch cluster
 
 ## Launch the master node first so that the NFS and Slurm controller are up before the mpi and slave nodes try to connect.
-ansible-playbook -i ./ec2.py launch.yml --tags master
+ansible-playbook -i ./ec2.py launch.yml --tags master --extra-vars="test=yes" 
 
 ## Request spot instances in parallel so instances are launched more quickly. 
-parallel -u ansible-playbook -i ./ec2.py launch.yml --tags {} ::: mpi slave0 slave1 slave2 slave3
+parallel -u ansible-playbook -i ./ec2.py launch.yml --tags {} --extra-vars="test=yes" ::: mpi slave0 slave1 slave2 slave3
 
 # Start factorization
 
-ansible-playbook -i ./ec2.py factor.yml
+ansible-playbook -i ./ec2.py factor.yml --extra-vars="test=yes"

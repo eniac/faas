@@ -4,6 +4,7 @@ slurm:
 # The slurm nodes 
     nodes:                                      
      - { name: "ip-10-0-[0-3]-[4-254]", cpus: 2 }
+    shared: "YES:2" 
 
 ami_builder:
     tag: "{{ my_tag }}_ami_builder"

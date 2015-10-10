@@ -2,6 +2,7 @@
 - name: Create AMI from running instance and terminate instance upon completion
   hosts: localhost
   vars_files:
+    - vars/custom.yml
     - vars/common.yml
     - vars/ec2.yml
     - vars/build.yml
@@ -28,6 +29,10 @@
     - name: Copy the new image id to the variables file  
       lineinfile: 'dest=vars/ec2.yml state=present regexp="^    custom_image" line="    custom_image: {{ ami_output.image_id }}               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too."'
       tags: custom
+
+    - name: Copy the base image id to the variables file
+      lineinfile: 'dest=vars/ec2.yml state=present regexp="^    base_image" line="    base_image: {{ ami_output.image_id }}               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too."'
+      tags: base
 
     - name: Terminate temporary instance
       ec2:

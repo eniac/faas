@@ -163,4 +163,4 @@ NodeName={{ node.name }} CPUs={{ node.cpus }} State=UNKNOWN
 {% endfor %}
 
 # PARTITIONS
-PartitionName=factor Nodes={{ slurm.nodes|map(attribute='name')|join(',') }} Default=YES Shared=NO MaxTime=INFINITE State=UP
+PartitionName=factor Nodes={{ slurm.nodes|map(attribute='name')|join(',') }} Default=YES Shared={{ slurm.shared }}  MaxTime=INFINITE State=UP

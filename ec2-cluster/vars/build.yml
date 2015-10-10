@@ -1,9 +1,12 @@
 # Specify slurm-specific settings here
 slurm:
     partition_name: factor
-# The slurm nodes 
+    # The slurm nodes 
     nodes:                                      
-     - { name: "ip-10-0-[0-3]-[4-254]", cpus: 36 }
+     - { name: "ip-10-0-0-4", cpus: 9 }
+     - { name: "ip-10-0-0-[5-254]", cpus: 36 }
+     - { name: "ip-10-0-[1-3]-[4-254]", cpus: 36 }
+    shared: "YES:2" 
 
 ami_builder:
     tag: "{{ my_tag }}_ami_builder"

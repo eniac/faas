@@ -66,12 +66,12 @@ for az,cidr in [('us-east-1b', '10.0.0.0/24'), ('us-east-1c', '10.0.1.0/24'), ('
     print('Created subnet {subnet_id} in availability zone {az} with cidr block {cidr} with associated route table {rt_id}'.format(subnet_id = subnet['SubnetId'], az=subnet['AvailabilityZone'], cidr=subnet['CidrBlock'], rt_id=rt_id))
 
 # Create placement group
-placement_group = 'faas-cluster2'
+placement_group = 'faas-cluster'
 run_command('aws ec2 create-placement-group --group-name {placement_group} --strategy cluster'.format(placement_group=placement_group))
 print('Created placement group {placement_group}'.format(placement_group=placement_group))
 
 # Create key pair
-key_pair = 'faas2'
+key_pair = 'faas'
 key_str = json.loads(run_command('aws ec2 create-key-pair --key-name {key_pair}'.format(key_pair=key_pair))[0])['KeyMaterial']
 key_file = '{home}/.ssh/{key_pair}.pem'.format(home=os.path.expanduser('~'), key_pair=key_pair)
 with open(key_file, 'w') as f:
@@ -93,7 +93,7 @@ with open(var_file, 'w') as f:
     f.write('    security_group: {sg_name}\n'.format(sg_name=sg_name))
     f.write('    placement_group: {placement_group}\n'.format(placement_group=placement_group))
     f.write('    ssh_key: {key_pair}\n'.format(key_pair=key_pair))
-    f.write('    base_image: ami-d05e75b8\n') # ami-d05e75b8
+    f.write('    base_image: ami-e1d39c84\n') # ami-d05e75b8 is the Amazon base Ubuntu Image. ami-e1d39c84 is our base image that we provide for convenience.
     f.write('    custom_image: \'\'\n')
     f.write('    image_name: faas image\n')
     f.write('    master_private_ip: 10.0.0.4\n')
