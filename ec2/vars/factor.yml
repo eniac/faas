@@ -9,9 +9,9 @@ supervisor:
     email: '{{ custom.email }}'
 
 commands:
-    post_sieve: '{{ faasdir_remote }}/scripts/post_sieve.sh'
-    post_linalg: '{{ faasdir_remote }}/scripts/post_linalg.sh'
-    post_factor: '{{ faasdir_remote }}/scripts/post_factor.sh'
+    post_sieve: '{{ faasdir_remote }}/factor/post_sieve.sh'
+    post_linalg: '{{ faasdir_remote }}/factor/post_linalg.sh'
+    post_factor: '{{ faasdir_remote }}/factor/post_factor.sh'
 
 cado:
     name: faas155

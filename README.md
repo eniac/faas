@@ -13,9 +13,9 @@ Set up and configure AWS CLI using these [instructions](http://docs.aws.amazon.c
 
 Install GNU Parallel using these [instructions](http://www.gnu.org/software/parallel/)
 
-### Go to the ec2-cluster directory
+### Go to the ec2 directory
 
-    >$ cd ec2-cluster
+    >$ cd ec2
 
 ### Configure AWS (Amazon Web Services) environment
 The following script will create a new AWS VPC (Virtual Private Cloud) configured for FaaS. 
@@ -29,7 +29,7 @@ The following script will create a new AWS VPC (Virtual Private Cloud) configure
 ### Build a base AMI (optional, we have already done this step for you)
 We provide a public AMI (ami-e1d39c84) that is the result of running the following script. However, if you wish to create your own base AMI you can run it yourself. It takes 20-30 minutes.
 
-    >$ ./ec2-cluster/build-base.sh
+    >$ ./build-base.sh
 
 ### Run test factorization (optional, but highly recommended)
 To check that your AWS environment is correctly configured, and that there are no issues with the setup, we recommend that you run the following test factorization. This following script will build a custom AMI for the test factorization, launch a cluster of four m4.large nodes, and factor a 100-digit number. The entire process should cost less than a dollar in EC2 credit, but will hopefully help you debug any issues with cluster setup. We recommend that you run the commands in the script one by one.
