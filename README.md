@@ -39,7 +39,7 @@ To check that your AWS environment is correctly configured, we recommend that yo
 ### Run factorization
 The following script will build a new AMI, launch a cluster, and factor the 512-bit integer that you specified in ec2-cluster/vars/custom.yml. We recommend that you run the commands in the script one by one. After you've already built a custom AMI, it is no longer necessary to build a new AMI each time, so you may wish to comment out the first few lines.
 
-    >$ ./factor.sh
+    >$ ./ec2-cluster/factor.sh
 
 ### Collect results
 If all goes to plan, you will recieve an email with the results of the factorization. However, this is research code, and things do not always go as planned :).  
