@@ -3,7 +3,7 @@ The purpose of the FaaS (Factoring as a Service) project is to demonstrate that 
 
 Please do not use these scripts to attack any systems that you do not own.
 
-Our scripts launch a compute cluster on Amazon EC2 and run the [CADO-NFS](http://cado-nfs.gforge.inria.fr/) and [Msieve](http://sourceforge.net/projects/msieve/) implementations of the number field sieve factoring algorithm. For more information about the project, see [the project webpage](https://seclab.upenn.edu/projects/faas/).
+Our scripts launch a compute cluster on Amazon EC2 and run the [CADO-NFS](http://cado-nfs.gforge.inria.fr/) and [Msieve](http://sourceforge.net/projects/msieve/) implementations of the number field sieve factoring algorithm, with some improvements to parallelization. For more information about the project, see [the project webpage](https://seclab.upenn.edu/projects/faas/) and [our paper](https://seclab.upenn.edu/projects/faas/faas.pdf).
 
 The tool was built using the AWS region 'us-east'. Run in any other region at your own risk.
 
