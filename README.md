@@ -1,19 +1,23 @@
 # FaaS
-The purpose of the FaaS (Factoring as a Service) project is to create a tool that allows anyone to factor a 512-bit RSA key with minimal time and cost. To do this, we have developed a framework for launching an compute cluster on Amazon EC2 and running a parallelized implementation of the Number Field Sieve (NFS) algorithm to factor keys. For more information about the project, see [the project webpage](https://www.cis.upenn.edu/~securlab/projects/faas/).
+The purpose of the FaaS (Factoring as a Service) project is to demonstrate that 512-bit integers can be factored in only a few hours, for less than $100 of compute time in a public cloud environment.  This illustrates the amazing progress in computing power over time, and the risk of continued use of 512-bit RSA keys.
 
-The tool was built using the AWS region 'us-east'. Run in any other region at your own risk.
+Please do not use these scripts to attack any systems that you do not own.
+
+Our scripts launch a compute cluster on Amazon EC2 and run the [CADO-NFS](http://cado-nfs.gforge.inria.fr/) and [Msieve](http://sourceforge.net/projects/msieve/) implementations of the number field sieve factoring algorithm, with some improvements to parallelization. For more information about the project, see [the project webpage](https://seclab.upenn.edu/projects/faas/) and [our paper](https://seclab.upenn.edu/projects/faas/faas.pdf).
+
+The tool was built using the AWS region 'us-east' and currently has many hard-coded settings for this region.
 
 # Quick Start Guide
-This section shows you how to quickly get set up to factor a number. For a more detailed documentation, see docs/GUIDE.md.
+This section shows you how to quickly get set up to factor. 
 
 ### Set up command machine (e.g., your workstation)
-Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro_installation.html#installation)
+Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro_installation.html#installation).
 
-Set up and configure AWS CLI using these [instructions](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html)
+Set up and configure AWS CLI using these [instructions](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html).
 
-Install GNU Parallel using these [instructions](http://www.gnu.org/software/parallel/)
+Install GNU Parallel using these [instructions](http://www.gnu.org/software/parallel/).
 
-### Go to the ec2 directory
+### Go to the ec2 directory (some of our scripts use relative paths)
 
     >$ cd ec2
 
@@ -22,22 +26,22 @@ The following script will create a new AWS VPC (Virtual Private Cloud) configure
 
     >$ ./configure-aws.py
 
-### Edit the values in vars/custom.yml using your favorite text editor (you should be able to figure out what to change)
+### Set custom values for your setup in vars/custom.yml using your favorite text editor.
 
     >$ vim vars/custom.yml
 
-### Build a base AMI (optional, we have already done this step for you)
-We provide a public AMI (ami-e1d39c84) that is the result of running the following script. However, if you wish to create your own base AMI you can run it yourself. It takes 20-30 minutes.
+### Optional: Build a base AMI
+We provide a public AMI (ami-e1d39c84), which is the result of running the following script. You can create your own base AMI if you wish. It takes 20-30 minutes.
 
     >$ ./build-base.sh
 
-### Run test factorization (optional, but highly recommended)
-To check that your AWS environment is correctly configured, and that there are no issues with the setup, we recommend that you run the following test factorization. This following script will build a custom AMI for the test factorization, launch a cluster of four m4.large nodes, and factor a 100-digit number. The entire process should cost less than a dollar in EC2 credit, but will hopefully help you debug any issues with cluster setup. We recommend that you run the commands in the script one by one.
+### Optional: Run test factorization
+To check that your AWS environment is correctly configured, we recommend that you run a small test factorization. Our test script will build a custom AMI for the test factorization, launch a cluster of four m4.large nodes, and factor a 100-digit number. The entire process should cost less than a dollar in EC2 credit, but will hopefully help you debug any issues with cluster setup. We recommend that you run the commands in the script one by one.
 
     >$ ./test-factor.sh
 
 ### Run factorization
-Run the following script to build a new AMI, launch a cluster, and factor the 512-bit key that you specified in vars/custom.yml. We recommend that you run the commands in the script one by one. After you've already built a custom AMI, it is no longer necessary to run the first few commands that build a new AMI.
+The following script will build a new AMI, launch a cluster, and factor the 512-bit integer that you specified in vars/custom.yml. We recommend that you run the commands in the script one by one. After you've already built a custom AMI, it is no longer necessary to build a new AMI each time, so you may wish to comment out the first few lines.
 
     >$ ./factor.sh
 
