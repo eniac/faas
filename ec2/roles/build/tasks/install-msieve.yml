@@ -1,7 +1,16 @@
 ---
-#- unarchive: src=msieve-custom.tar.gz dest={{ sourcedir }}
-# copy over and install msieve (NOTE: MPI must already be installed)
-- copy: src={{ faasdir }}/msieve-custom dest={{ sourcedir }}
+# download, apply patch, and install msieve (NOTE: MPI must already be installed)
+- get_url: dest={{ sourcedir }}/msieve.tar.gz url='https://sourceforge.net/projects/msieve/files/latest/download?source=files'
+  sudo: yes
+- unarchive: copy=no src={{ sourcedir }}/msieve.tar.gz dest={{ sourcedir }}
+  sudo: yes
+- copy: src=msieve.patch dest={{ sourcedir }}
+  sudo: yes
+- patch: strip=1 basedir={{ sourcedir }} src={{ sourcedir }}/msieve.patch
+  sudo: yes
+- command: rm -rf {{ sourcedir }}/msieve-custom
+  sudo: yes
+- command: mv {{sourcedir}}/msieve-1.52 {{sourcedir}}/msieve-custom
   sudo: yes
 - command: chdir={{ sourcedir }}/msieve-custom make all NO_ZLIB=1 MPI=1
   sudo: yes

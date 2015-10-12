@@ -1,0 +1,1757 @@
+diff -Naur ./msieve-1.52/common/driver.c ./msieve-custom/common/driver.c
+--- ./msieve-1.52/common/driver.c	2012-08-03 22:32:47.000000000 -0400
++++ ./msieve-custom/common/driver.c	2015-10-11 20:16:46.000000000 -0400
+@@ -344,16 +344,25 @@
+ 
+ 		va_start(ap, fmt);
+ 		buf[0] = 0;
+-		strcpy(buf, ctime(&t));
+-		*(strchr(buf, '\n')) = 0;
+-		fprintf(logfile, "%s  ", buf);
+-		vfprintf(logfile, fmt, ap);
+-		fclose(logfile);
+-		va_end(ap);
++        ctime_r(&t, buf);
++        //strcpy(buf, ctime(&t));
++        char *result = strchr(buf, '\n');
++        if (result == NULL) { 
++            fprintf(logfile, "%s ", "unable to dereference buf");
++            exit(1);
++            // return;
++        } else { 
++            *result = 0;
++            fprintf(logfile, "%s  ", buf);
++            vfprintf(logfile, fmt, ap);
++            fclose(logfile);
++            va_end(ap);
++        }
+ 	}
+ 	if (obj->flags & MSIEVE_FLAG_LOG_TO_STDOUT) {
+ 		va_start(ap, fmt);
+ 		vfprintf(stdout, fmt, ap);
++        fflush(stdout);
+ 		va_end(ap);
+ 	}
+ }
+diff -Naur ./msieve-1.52/common/lanczos/lanczos.c ./msieve-custom/common/lanczos/lanczos.c
+--- ./msieve-1.52/common/lanczos/lanczos.c	2013-06-22 15:25:41.000000000 -0400
++++ ./msieve-custom/common/lanczos/lanczos.c	2015-10-11 20:16:47.000000000 -0400
+@@ -1222,7 +1222,7 @@
+ 
+ 				fprintf(stderr, "linear algebra completed %u "
+ 					"of %u dimensions (%1.1f%%, ETA "
+-					"%dh%2dm)    \r",
++					"%dh%2dm)    \n",
+ 					dim_solved, max_n, 100.0 * dim_solved / 
+ 					max_n, eta / 3600, (eta % 3600) / 60);
+ 
+diff -Naur ./msieve-1.52/common/lanczos/lanczos_io.c ./msieve-custom/common/lanczos/lanczos_io.c
+--- ./msieve-1.52/common/lanczos/lanczos_io.c	2012-07-14 23:36:58.000000000 -0400
++++ ./msieve-custom/common/lanczos/lanczos_io.c	2015-10-11 20:16:47.000000000 -0400
+@@ -337,6 +337,200 @@
+ 	*cycle_list_out = (la_col_t *)xrealloc(cycle_list, 
+ 				num_cycles * sizeof(la_col_t));
+ }
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: read_cycles_threaded()
++
++This is a modified version of read_cycles() that enables the 
++threading of the square root stage. 
++
++The key modification is that it creates lists of cycles (and relation
++ids within them) for each of the dependencies in one pass of the .cyc
++ cycle file.
++
++It also takes in uint32 pointers for dep_lower and dep_upper. This
++allows for the modification of dep_lower and dep_upper, as some of 
++the dependencies will not contain any cycles. This differs from the 
++original code, which due to its sequential nature would normally "hit"
++a "good" dependency before running out of dependencies.
++
++-------------------------------------------------------------------*/
++
++void read_cycles_threaded(msieve_obj *obj, 
++		la_dep_t **dep_cycle_list_out, 
++		uint32 *dep_lower,
++		uint32 *dep_upper) {
++
++	uint32 i;
++	uint32 j;
++	uint32 num_cycles;
++	uint32 max_cycles = 0;
++	uint32 rel_index[MAX_COL_IDEALS];
++	char buf[256];
++	FILE *cycle_fp;
++	FILE *dep_fp = NULL;
++	la_dep_t *dep_cycle_list = NULL;
++	uint64 mask = 0;
++	uint32 temp_dep_upper = *dep_upper;
++
++	/* open cycle file */
++	sprintf(buf, "%s.cyc", obj->savefile.name);
++	cycle_fp = fopen(buf, "rb");
++	if (cycle_fp == NULL) {
++		logprintf(obj, "error: read_cycles can't open cycle file\n");
++		exit(-1);
++	}
++
++	/* open dependency file */
++	sprintf(buf, "%s.dep", obj->savefile.name);
++	dep_fp = fopen(buf, "rb");
++	if (dep_fp == NULL) {
++		logprintf(obj, "error: read_cycles can't "
++				"open dependency file\n");
++		exit(-1);
++	}
++
++	/* read the total number of cycles, and allocate 
++	   sufficient space for each dependency to hold them */
++	fread(&num_cycles, sizeof(uint32), (size_t)1, cycle_fp);
++	logprintf(obj, "Sqrt: Assigning space for %u cycles for %u dependencies", 
++		      num_cycles, *dep_upper - *dep_lower + 1);
++	dep_cycle_list = (la_dep_t *)xcalloc((size_t)(*dep_upper - *dep_lower + 1),
++										 sizeof(la_dep_t));
++
++	for (i = *dep_lower; i <= *dep_upper; i++) {
++		la_dep_t *dep = dep_cycle_list + i - *dep_lower;
++		dep->column = xcalloc((size_t)num_cycles, sizeof(la_col_t));
++		dep->curr_cycle = 0;
++		dep->num_cycles = num_cycles;
++	}
++
++	/* read the relation numbers for each cycle and copy it to 
++	   all of the dependencies that it belongs to */
++	for (i = 0; i < num_cycles; i++) {
++		la_dep_t *dep;
++		la_col_t *c;
++		uint32 num_relations;
++		uint64 curr_dep;
++
++		if (fread(&num_relations, sizeof(uint32), 
++					(size_t)1, cycle_fp) != 1)
++			break;
++
++		if (num_relations > MAX_COL_IDEALS) {
++			printf("error: cycle too large; corrupt file?\n");
++			exit(-1);
++		}
++
++		if (fread(rel_index, sizeof(uint32), (size_t)num_relations, 
++					cycle_fp) != num_relations)
++			break;
++
++		/* all the relation numbers for this cycle
++		   have been read; save them and start the
++		   count for the next cycle. */
++
++		if (fread(&curr_dep, sizeof(uint64), 
++					(size_t)1, dep_fp) == 0) {
++			printf("dependency file corrupt\n");
++			exit(-1);
++		} 
++
++		mask = (uint64) 1 << (*dep_lower - 1);
++
++		for (j = *dep_lower; j <= *dep_upper; j++) {
++			if (mask & curr_dep) {
++				dep = dep_cycle_list + j - *dep_lower;
++				c = dep->column + dep->curr_cycle;
++				dep->curr_cycle++;
++
++				c->cycle.num_relations = num_relations;
++				c->cycle.list = (uint32 *)xmalloc(num_relations * 
++								sizeof(uint32));
++				memcpy(c->cycle.list, rel_index, 
++						num_relations * sizeof(uint32));
++			}
++			mask <<= 1;
++		}
++
++		
++	}
++
++	/* Assigns the correct number of cycles for each cycle.
++	   Also set the maximum number of cycles to ensure that at least
++	   one of the dependencies has a non-zero number of cycles */
++	for (i = *dep_lower; i <= *dep_upper; i++) {
++		la_dep_t *dep;
++
++		dep = dep_cycle_list + i - *dep_lower;
++
++		logprintf(obj, "Sqrt: For dependency %u, read %u cycles\n", i, 
++			      dep->curr_cycle);
++		dep->num_cycles = dep->curr_cycle;
++		max_cycles = MAX(max_cycles, dep->num_cycles);
++	}
++
++	/* Checks all of the cycles to ensure that none of them are empty. */
++	for (i = *dep_lower; i <= *dep_upper; i++) {
++		la_dep_t *dep;
++
++		dep = dep_cycle_list + i - *dep_lower;
++
++		for (j = 0; j < dep->num_cycles; j++) {
++			if (dep->column[j].cycle.num_relations == 0) {
++				logprintf(obj, "error: empty cycle encountered\n");
++				exit(-1);
++			}
++		}
++	}
++	fclose(cycle_fp);
++	fclose(dep_fp);
++
++	/* Check to ensure that at least one of the dependencies 
++	   has a non-zero number of cycles */
++	if (max_cycles == 0) {
++		for (i = *dep_lower; i <= *dep_upper; i++) {
++			la_dep_t *dep;
++
++			dep = dep_cycle_list + i - *dep_lower;
++			free(dep->column);
++		}
++		free(dep_cycle_list);
++		*dep_cycle_list_out = NULL;
++		logprintf(obj, "Sqrt: error: no dependencies with non-zero cycles");
++		return;
++	}
++
++	/* Reallocate the memory as the number of cycles per dep is probably
++	   less than the total number of cycles. If the dependency has no cycles,
++	   free it and change the dep_upper bound. 
++	   Reallocate the entire dependency list as well. */
++	for (i = *dep_lower; i <= *dep_upper; i++) {
++		la_dep_t *dep;
++
++		dep = dep_cycle_list + i - *dep_lower;
++
++		if (dep->num_cycles == 0) {
++			temp_dep_upper = MIN(i - 1, temp_dep_upper);
++			free(dep->column);
++		} else {
++			dep->column = (la_col_t *)xrealloc(dep->column, dep->num_cycles *
++											   sizeof(la_col_t));
++		}
++	}
++
++	*dep_upper = temp_dep_upper;
++	dep_cycle_list = (la_dep_t *)xrealloc(dep_cycle_list, 
++										  (*dep_upper - *dep_lower + 1) *
++										  sizeof(la_dep_t));
++
++	*dep_cycle_list_out = dep_cycle_list;
++}
++
++
+ /*--------------------------------------------------------------------*/
+ static int compare_uint32(const void *x, const void *y) {
+ 	uint32 *xx = (uint32 *)x;
+diff -Naur ./msieve-1.52/gnfs/gnfs.c ./msieve-custom/gnfs/gnfs.c
+--- ./msieve-1.52/gnfs/gnfs.c	2013-06-22 09:16:18.000000000 -0400
++++ ./msieve-custom/gnfs/gnfs.c	2015-10-11 20:16:47.000000000 -0400
+@@ -42,7 +42,17 @@
+ 
+ static uint32 nfs_init_savefile(msieve_obj *obj, mpz_t n);
+ 
+-/*--------------------------------------------------------------------*/
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: factor_gnfs()
++
++The only modification is to call nfs_find_factors_threaded() instead
++of nfs_find_factors().
++
++-------------------------------------------------------------------*/
++
+ uint32 factor_gnfs(msieve_obj *obj, mp_t *input_n,
+ 			factor_list_t *factor_list) {
+ 
+@@ -165,7 +175,7 @@
+ 		nfs_solve_linear_system(obj, n);
+ 		
+ 	if (obj->flags & MSIEVE_FLAG_NFS_SQRT)
+-		factor_found = nfs_find_factors(obj, n, factor_list);
++		factor_found = nfs_find_factors_threaded(obj, n, factor_list);
+ 
+ finished:
+ 	mpz_poly_free(&rat_poly);
+diff -Naur ./msieve-1.52/gnfs/gnfs.h ./msieve-custom/gnfs/gnfs.h
+--- ./msieve-1.52/gnfs/gnfs.h	2013-06-15 22:25:22.000000000 -0400
++++ ./msieve-custom/gnfs/gnfs.h	2015-10-11 20:16:47.000000000 -0400
+@@ -56,6 +56,30 @@
+ 		mpz_init_set_ui(poly->coeff[i], 0);
+ }
+ 
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: mpz_poly_copy()
++
++This is a bug fix to the existing mpz_poly_copy() code. A simple 
++memcpy is not sufficient for mpz_t. It must be set correctly using
++the mpz_set() method.
++
++-------------------------------------------------------------------*/
++
++static INLINE void mpz_poly_copy(mpz_poly_t *dst, mpz_poly_t * src) {
++	uint32 i;
++	dst->degree = src->degree;
++
++	for (i = 0; i <= MAX_POLY_DEGREE; i++)
++		mpz_set(dst->coeff[i], src->coeff[i]);
++
++	mpz_set(dst->tmp1, src->tmp1);
++	mpz_set(dst->tmp2, src->tmp2);
++	mpz_set(dst->tmp3, src->tmp3);
++}
++
+ static INLINE void mpz_poly_free(mpz_poly_t * poly) {
+ 	uint32 i;
+ 
+@@ -262,6 +286,34 @@
+ uint32 nfs_find_factors(msieve_obj *obj, mpz_t n, 
+ 			factor_list_t *factor_list);
+ 
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: nfs_find_factors_threaded()
++
++Implements a threaded version of nfs_find_factors(), where multiple
++dependencies are worked on at the same time. This eliminates the 
++non-deterministic runtime of nfs_find_factors(), where the time taken
++would scale linearly with the number of "bad" dependencies it encounters.
++
++Currently, all threads are given new tasks at the same time. This is
++to allow all of the threads to finish first, and allow the master thread
++to check if the factor has been found. 
++
++A modification that could be made in the future to modify the threading
++code to allow each thread to be killed at any time. This is a major
++nightmare due to the fact that mutexes are involved and memory is freed
++during the execution of thread, so I have not implemented it here.
++
++As we must wait for all threads to complete, there is a ~10% overhead
++here compared to the time it takes to work on one dependency only.
++
++-------------------------------------------------------------------*/
++
++uint32 nfs_find_factors_threaded(msieve_obj *obj, mpz_t n,
++			factor_list_t *factor_list);
++
+ /*------------------- relation processing stuff --------------------------*/
+ 
+ #define RATIONAL_IDEAL 0
+@@ -333,6 +385,25 @@
+ 				 factors first, then algebraic */
+ } relation_t;
+ 
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Struct: relation_lists_t
++
++Allows the store of a list of relations for multiple dependencies.
++
++-------------------------------------------------------------------*/
++
++
++typedef struct relation_lists_t {
++	uint32 dep_no;
++	uint32 num_relations;
++	relation_t *rlist;
++
++} relation_lists_t;
++
+ /* structure used to conveniently represent all of
+    the large ideals that occur in a relation. The
+    structure is far too large to be useful when 
+@@ -383,6 +454,29 @@
+ 			relation_t **relation_list, uint32 compress,
+ 			uint32 dependency);
+ 
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: nfs_read_cycles_threaded()
++
++This is a modified version of nfs_read_cycles() that enables the 
++threading of the square root stage. 
++
++Using the modified read_cycles_threaded() and 
++nfs_get_cycle_relations_threaded(), it allows us to create lists of 
++relations for each of the dependencies in one pass of the .cyc cycle 
++file and the .dat relation file. 
++
++By creating all of the dependency relations objects in one go, 
++this allows us to save on file IO time and to create threads for 
++multiple dependencies at the same time.
++
++-------------------------------------------------------------------*/
++
++void nfs_read_cycles_threaded(msieve_obj *obj, factor_base_t *fb, relation_lists_t **rlists, 
++			uint32 *dep_lower, uint32 *dep_upper);
++
+ void nfs_free_relation_list(relation_t *rlist, uint32 num_relations);
+ 
+ void nfs_convert_cado_cycles(msieve_obj *obj);
+diff -Naur ./msieve-1.52/gnfs/relation.c ./msieve-custom/gnfs/relation.c
+--- ./msieve-1.52/gnfs/relation.c	2014-02-04 10:39:11.000000000 -0500
++++ ./msieve-custom/gnfs/relation.c	2015-10-11 20:16:47.000000000 -0400
+@@ -474,6 +474,7 @@
+ 	uint32 count;
+ } relcount_t;
+ 
++
+ static void nfs_get_cycle_relations(msieve_obj *obj, 
+ 				factor_base_t *fb, uint32 num_cycles, 
+ 				la_col_t *cycle_list, 
+@@ -612,6 +613,245 @@
+ 	mpz_clear(scratch);
+ }
+ 
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Struct: relcount_thread_t
++
++This is a modified version of relcount_t. It allows for the storage
++of a dependency flag. If the bit is set, then the relation belongs
++to the dependency in question. This allows for the relations file to
++be read in one pass, and have all of the relations copied to the 
++appropriate dependencies.
++
++Used in nfs_get_cycle_relations_threaded() mainly.
++
++-------------------------------------------------------------------*/
++
++typedef struct {
++	uint32 relidx;
++	uint64 dep_flags;
++} relcount_thread_t;
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: compare_relcount_thread()
++
++This is a comparator that is used in the quicksort method. This
++allows for the sorting of all of the relcount_thread_t structs 
++based on their relidx.
++
++Used in nfs_get_cycle_relations_threaded()
++
++-------------------------------------------------------------------*/
++
++int compare_relcount_thread (const void * a, const void * b) {
++	return compare_uint32(&(((relcount_thread_t *) a)->relidx), 
++				&(((relcount_thread_t *) b)->relidx));
++}
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: nfs_get_cycle_relations_threaded()
++
++This is a modified version of nfs_get_cycle_relations() that enables the 
++threading of the square root stage. 
++
++The key modification is that it creates lists of relations for each of 
++the dependencies in one pass of the .dat relation file. By creating all
++of the dependency relations objects in one go, this allows us to save on 
++file IO time and to create threads for multiple dependencies at the same time.
++
++-------------------------------------------------------------------*/
++
++static void nfs_get_cycle_relations_threaded(msieve_obj *obj, 
++				factor_base_t *fb, la_dep_t *dep_cycle_list,
++				relation_lists_t **dep_rel_list_out,
++				uint32 dep_lower,
++				uint32 dep_upper) {
++	uint32 i, j, k;
++	char buf[LINE_BUF_SIZE];
++	relation_lists_t *dep_rel_list;
++	savefile_t *savefile = &obj->savefile;
++
++	hashtable_t unique_relidx;
++	uint32 num_unique_relidx;
++	relcount_thread_t *relidx_list;
++	relcount_thread_t *entry;
++
++	uint8 tmp_factors[COMPRESSED_P_MAX_SIZE];
++	uint32 factor_size;
++	relation_t tmp_relation;
++	mpz_t scratch;
++
++	tmp_relation.factors = tmp_factors;
++
++	hashtable_init(&unique_relidx, 
++			(uint32)WORDS_IN(relcount_thread_t), 
++			(uint32)1);
++
++	/* Fill the hashtable using the relation ids for each dependency obtained
++	in read_cycles_threaded(). If the relation has already been added, simply 
++	toggle the bit in relcount_thread_t belonging to the struct. 
++
++	Doing this also neatly "squeezes" out the relations that occurs an 
++	even number of times.
++	(author: not entirely sure why "squeezing" is necessary, but the same 
++	 operation is performed in nfs_get_cycle_relations(), so I figured it 
++	 should be included) */
++
++	for (i = dep_lower; i <= dep_upper; i++) {
++		la_dep_t *dep = dep_cycle_list + i - dep_lower;
++		for (j = 0; j < dep->num_cycles; j++) {
++			la_col_t *c = dep->column + j;
++			uint32 num_relations = c->cycle.num_relations;
++			uint32 *list = c->cycle.list;
++
++			for (k = 0; k < num_relations; k++) {
++				uint32 already_seen;
++				entry = (relcount_thread_t *)hashtable_find(
++							&unique_relidx, list + k, 
++							NULL, &already_seen);
++				if (!already_seen)
++					entry->dep_flags = 1 << (i - 1);
++				else
++					entry->dep_flags ^= 1 << (i - 1);
++			}
++		}
++	}
++
++	/* Convert the internal list of hashtable entries into
++	   a list of relcount_thread_t. Discard all relcount_thread_t where the
++	   dependency flag is 0 (it has been squeezed out from all deps) */
++
++	hashtable_close(&unique_relidx);
++	num_unique_relidx = hashtable_get_num(&unique_relidx);
++	entry = (relcount_thread_t *)hashtable_get_first(&unique_relidx);
++	relidx_list = (relcount_thread_t *)unique_relidx.match_array;
++
++	for (i = j = 0; i < num_unique_relidx; i++) {
++		if (entry->dep_flags != 0)
++			relidx_list[j++] = *entry;
++
++		entry = (relcount_thread_t *)hashtable_get_next(
++					&unique_relidx, entry);
++	}
++	num_unique_relidx = j;
++
++	/* sort the list in order of increasing relation number */
++	qsort(relidx_list, (size_t)num_unique_relidx, 
++		sizeof(relcount_thread_t), compare_relcount_thread);
++
++	logprintf(obj, "Sqrt: cycles contain %u unique relations\n", 
++				num_unique_relidx);
++
++	savefile_open(savefile, SAVEFILE_READ);
++
++	/* assign space for relation lists for each dependency */
++	dep_rel_list = (relation_lists_t *)xcalloc((size_t)(dep_upper 
++		                                                - dep_lower + 1), 
++											   sizeof(relation_lists_t));
++
++	for (i = dep_lower; i <= dep_upper; i++) {
++		relation_lists_t *rlists;
++
++		rlists = dep_rel_list + i - dep_lower;
++		rlists->rlist = (relation_t *)xcalloc((size_t) num_unique_relidx,
++											  sizeof(relation_t));
++		rlists->dep_no = i;
++		rlists->num_relations = 0;
++	}
++	
++	/* read the list of relations */
++
++	i = (uint32)(-1);
++	j = 0;
++	savefile_read_line(buf, sizeof(buf), savefile);
++	mpz_init(scratch);
++	while (!savefile_eof(savefile) && j < num_unique_relidx) {
++		
++		int32 status;
++
++		if (buf[0] != '-' && !isdigit(buf[0])) {
++
++			/* no relation at this line */
++
++			savefile_read_line(buf, sizeof(buf), savefile);
++			continue;
++		}
++		if (++i < relidx_list[j].relidx) {
++
++			/* relation not needed */
++
++			savefile_read_line(buf, sizeof(buf), savefile);
++			continue;
++		}
++
++		status = nfs_read_relation(buf, fb, &tmp_relation, 
++						&factor_size, 0,
++						scratch);
++		if (status) {
++			/* at this point, if the relation couldn't be
++			   read then the filtering stage should have
++			   found that out and skipped it */
++
++			logprintf(obj, "error: relation %u corrupt\n", i);
++			exit(-1);
++		}
++		else {
++
++			/* Iterate through all of the dependencies. 
++			   Save the relation if it matches the dependency */
++			for (k = dep_lower; k <= dep_upper; k++) {
++				if (relidx_list[j].dep_flags & (1 << (k - 1))) {
++					relation_lists_t *rlists;
++					relation_t *r;
++
++					rlists = dep_rel_list + k - dep_lower;
++					r = rlists->rlist + rlists->num_relations;
++
++					*r = tmp_relation;
++					r->rel_index = i;
++					r->factors = (uint8 *)xmalloc(factor_size *
++							sizeof(uint8));
++					memcpy(r->factors, tmp_relation.factors,
++							factor_size * sizeof(uint8));
++
++					rlists->num_relations++;
++				}
++			}
++			j++;
++		}
++
++		savefile_read_line(buf, sizeof(buf), savefile);
++	}
++
++	num_unique_relidx = j;
++	logprintf(obj, "Sqrt: read %u relations in total\n", j);
++
++	/* Reallocate memory for each dependency, as no dependency is likely to
++	   have each relation in it */
++	for (i = dep_lower; i <= dep_upper; i++) {
++		relation_lists_t *rlists;
++
++		rlists = dep_rel_list + i - dep_lower;
++		rlists->rlist = (relation_t *)xrealloc(rlists->rlist,
++					(size_t) (rlists->num_relations * sizeof(relation_t)));
++		logprintf(obj, "Sqrt: Dependency %u has %u relations\n", i, 
++			      rlists->num_relations);
++	}
++
++	savefile_close(savefile);
++	hashtable_free(&unique_relidx);
++	*dep_rel_list_out = dep_rel_list;
++	mpz_clear(scratch);
++}
++
+ /*--------------------------------------------------------------------*/
+ void nfs_read_cycles(msieve_obj *obj, 
+ 			factor_base_t *fb,
+@@ -682,6 +922,60 @@
+ 	}
+ }
+ 
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: nfs_read_cycles_threaded()
++
++This is a modified version of nfs_read_cycles() that enables the 
++threading of the square root stage. 
++
++Using the modified read_cycles_threaded() and 
++nfs_get_cycle_relations_threaded(), it allows us to create lists of 
++relations for each of the dependencies in one pass of the .cyc cycle 
++file and the .dat relation file. 
++
++By creating all of the dependency relations objects in one go, 
++this allows us to save on file IO time and to create threads for 
++multiple dependencies at the same time.
++
++-------------------------------------------------------------------*/
++
++void nfs_read_cycles_threaded(msieve_obj *obj, 
++			factor_base_t *fb,
++			relation_lists_t **rlists,
++			uint32 *dep_lower, 
++			uint32 *dep_upper) {
++
++	int i;
++	la_dep_t *dep_cycle_list = NULL;
++	relation_lists_t *dep_rel_list = NULL;
++
++	/* read the raw list of relation numbers for each cycle and dependency */
++	read_cycles_threaded(obj, &dep_cycle_list, dep_lower, dep_upper);
++
++	if (dep_cycle_list == NULL) {
++		*rlists = NULL;
++		return;
++	}
++
++	/* now read the list of relations needed by the
++	   list of cycles */
++	nfs_get_cycle_relations_threaded(obj, fb, dep_cycle_list, 
++				&dep_rel_list, *dep_lower, *dep_upper);
++
++	/* need to free dep_cycle_list */
++
++	for (i = *dep_lower; i <= *dep_upper; i++) {
++		la_dep_t *dep = dep_cycle_list + i - *dep_lower;
++		free_cycle_list(dep->column, dep->num_cycles);
++	}
++	free(dep_cycle_list);
++	
++	*rlists = dep_rel_list;
++}
++
+ /*--------------------------------------------------------------------*/
+ void nfs_free_relation_list(relation_t *rlist, uint32 num_relations) {
+ 
+diff -Naur ./msieve-1.52/gnfs/sqrt/sqrt.c ./msieve-custom/gnfs/sqrt/sqrt.c
+--- ./msieve-1.52/gnfs/sqrt/sqrt.c	2013-07-04 08:00:42.000000000 -0400
++++ ./msieve-custom/gnfs/sqrt/sqrt.c	2015-10-11 20:16:47.000000000 -0400
+@@ -548,3 +548,742 @@
+ 
+ 	return factor_found;
+ }
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_fb_light_init()
++
++This is performs a light initialization of the mpz_poly structs
++in the factor_base_t.
++
++Used only in sqrt_data_init()
++
++-------------------------------------------------------------------*/
++
++void sqrt_fb_light_init (factor_base_t *fb) {
++	memset(fb, 0, sizeof(factor_base_t));
++	mpz_poly_init(&(fb->rfb.poly));
++	mpz_poly_init(&(fb->afb.poly));
++}
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_fb_light_copy_a_r_poly()
++
++This is performs a light copy of the mpz_poly structs
++in the factor_base_t.
++
++Used only in sqrt_data_deep_copy()
++
++-------------------------------------------------------------------*/
++
++void sqrt_fb_light_copy_a_r_poly (factor_base_t *dst, factor_base_t *src) {
++	mpz_poly_copy(&(dst->rfb.poly), &(src->rfb.poly));
++	mpz_poly_copy(&(dst->afb.poly), &(src->afb.poly));
++}
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_data_init()
++
++This is performs a initialization of the sqrt_data struct.
++
++Used in sqrt_data_deep_copy() and nfs_find_factors_threaded().
++
++-------------------------------------------------------------------*/
++
++void sqrt_data_init (sqrt_data *dat) {
++	sqrt_fb_light_init(&(dat->fb));
++	dat->apoly = &(dat->fb.afb.poly);
++	dat->rpoly = &(dat->fb.rfb.poly);
++	mpz_poly_init(&(dat->monic_alg_poly));
++	mpz_init(dat->exponent);
++	mpz_init(dat->sqrt_r);
++	mpz_init(dat->sqrt_a);
++	mpz_init(dat->c);
++	mpz_init(dat->tmp1);
++	mpz_init(dat->tmp2);
++}
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_data_deep_copy()
++
++This is performs a deep copy of the sqrt_data struct. Only pass 
++in an uninitialized, but memory allocated, sqrt_data pointer as
++dst. The current method does not do the correct checking to
++ensure memory-safety otherwise.
++
++Used in nfs_find_factors_threaded() in order to make a copy of
++sqrt_data for each of the threads.
++
++-------------------------------------------------------------------*/
++
++void sqrt_data_deep_copy (sqrt_data *dst, sqrt_data *src) {
++	sqrt_data_init(dst);
++	dst->check_q = src->check_q;
++	sqrt_fb_light_copy_a_r_poly(&(dst->fb), &(src->fb));
++	mpz_poly_copy(&(dst->monic_alg_poly), &(src->monic_alg_poly));
++	mpz_set(dst->exponent, src->exponent);
++	mpz_set(dst->sqrt_r, src->sqrt_r);
++	mpz_set(dst->sqrt_a, src->sqrt_a);
++	mpz_set(dst->c, src->c);
++	mpz_set(dst->tmp1, src->tmp1);
++	mpz_set(dst->tmp2, src->tmp2);
++}
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: free_sqrt_data()
++
++Frees sqrt_data.
++
++Used in nfs_find_factors_threaded() and sqrt_thread_shutdown()
++
++-------------------------------------------------------------------*/
++
++void free_sqrt_data (sqrt_data *dat) {
++	mpz_poly_free(&(dat->fb.rfb.poly));
++	mpz_poly_free(&(dat->fb.afb.poly));
++	mpz_poly_free(&(dat->monic_alg_poly));
++	mpz_clear(dat->exponent);
++	mpz_clear(dat->sqrt_r);
++	mpz_clear(dat->sqrt_a);
++	mpz_clear(dat->c);
++	mpz_clear(dat->tmp1);
++	mpz_clear(dat->tmp2);
++
++	free(dat);
++}
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_thread_data_init()
++
++Initializes the data object required by each thread.
++
++Used in nfs_find_factors_threaded().
++
++-------------------------------------------------------------------*/
++
++void sqrt_thread_data_init(msieve_obj *obj, 
++				sqrt_thread_data *thread_dat, 
++				sqrt_data *dat, relation_lists_t *rl, 
++				pthread_mutex_t *factor_found_mutex,
++				pthread_mutex_t *status_mutex, 
++				pthread_cond_t *status_cond, int *status, 
++				pthread_mutex_t *count_mutex, int *count,
++				mpz_t n, factor_list_t *factor_list) {
++
++	thread_dat->dat = (sqrt_data *)xcalloc((size_t) 1, sizeof(sqrt_data));
++	sqrt_data_deep_copy(thread_dat->dat, dat);
++	thread_dat->dep_no = rl->dep_no;
++	thread_dat->rlist = rl->rlist;
++	thread_dat->num_relations = rl->num_relations;
++	thread_dat->factor_found_mutex = factor_found_mutex;
++	thread_dat->status_mutex = status_mutex;
++	thread_dat->status_cond = status_cond;
++	thread_dat->count_mutex = count_mutex;
++	thread_dat->count = count;
++	thread_dat->status = status;
++	thread_dat->obj = obj;
++	mpz_init(thread_dat->n);
++	mpz_set(thread_dat->n, n);
++	thread_dat->factor_list = factor_list;
++}
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: free_sqrt_thread_data()
++
++Frees the thread data object upon completion of the thread.
++
++Used in nfs_find_factors_threaded() and sqrt_thread_shutdown().
++
++-------------------------------------------------------------------*/
++
++void free_sqrt_thread_data(sqrt_thread_data *data) {
++	mpz_clear(data->n);
++	free_sqrt_data(data->dat);
++}
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_thread_shutdown()
++
++Performs necessary clean up of thread data after the task is complete.
++
++Used in nfs_find_factors_threaded().
++
++-------------------------------------------------------------------*/
++
++void sqrt_thread_shutdown(void *arg, int thread_num) {
++	sqrt_thread_data *data = (sqrt_thread_data *) arg;
++
++	logprintf(data->obj, "Sqrt: Thread %u shutting down dep_task %u\n", 
++					thread_num, data->dep_no);
++
++	/* Update the number of completed dependencies */
++	if (pthread_mutex_lock(data->count_mutex)) {
++		perror("pthread_mutex_lock...");
++	}
++	*(data->count) = *(data->count) + 1;
++	if (pthread_mutex_unlock(data->count_mutex)) {
++		perror("pthread_mutex_unlock...");
++	}
++
++	/* Let the master check if we are done */
++	if (pthread_mutex_lock(data->status_mutex)) {
++		perror("pthread_mutex_lock...");
++	}
++	pthread_cond_broadcast(data->status_cond);
++	if (pthread_mutex_unlock(data->status_mutex)) {
++		perror("pthread_mutex_unlock...");
++	}
++
++	free_sqrt_thread_data(data);
++}
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_thread_find_factor()
++
++Method that each thread runs to compute each dependency.
++
++-------------------------------------------------------------------*/
++
++void sqrt_thread_find_factor(void *data, int thread_num) {
++	
++	int i;
++	sqrt_thread_data *init = (sqrt_thread_data *) data;
++	msieve_obj *obj = init->obj;
++	sqrt_data *dat = init->dat;
++	pthread_mutex_t *factor_found_mutex = init->factor_found_mutex;
++	pthread_mutex_t *status_mutex = init->status_mutex;
++	int *status = init->status;
++	uint32 num_relations = init->num_relations;
++	uint32 num_free_relations;
++	uint32 dep_no = init->dep_no;
++	relation_t *rlist = init->rlist;
++	abpair_t *abpairs = init->abpairs;
++	factor_list_t *factor_list = init->factor_list;
++
++	logprintf(obj, "Sqrt: Thread %u working on dependency %u\n", 
++			  thread_num, dep_no);
++
++	if (num_relations == 0)
++		return;
++
++	/* do some sanity checking, performing increasing
++	   amounts of work as the dependency proves itself
++	   to be valid */
++
++	if (num_relations % 2) {
++		/* the LA is supposed to force the number of 
++		   relations in the dependency to be even. 
++		   This isn't necessary if the leading coeff of
++		   both NFS polynomials are squares, or if both
++		   NFS polynomials are monic, since the 
++		   corrections below that need the number of 
++		   relations are avoided. But only a small 
++		   minority of NFS jobs would satisfy this condition */
++
++		logprintf(obj, "Sqrt: Dependency %u failed: number of relations" 
++			      "is not even\n", dep_no);
++		return;
++	}
++
++
++	if (verify_alg_ideal_powers(rlist, 
++			num_relations, &num_free_relations) != 0) {
++		logprintf(obj, "Sqrt: Dependency %u failed: algebraic side is not "
++				  "a square!\n", dep_no);
++		return;
++	}
++	if (num_free_relations % 2) {
++		logprintf(obj, "Sqrt: Dependency %u failed: number of free relations"
++		   		  " (%u) is not even\n", dep_no, num_free_relations);
++		return;
++	}
++	if (rat_square_root(rlist, num_relations, init->n, dat->sqrt_r) != 0) {
++		logprintf(obj, "Sqrt: Dependency %u failed: rational side is not "
++			      "a square!\n", dep_no);
++		return;
++	}
++
++
++	/* flatten the list of relations; each occurrence of
++	   a relation gets its own abpair_t */
++
++	abpairs = (abpair_t *)xmalloc(num_relations *
++					sizeof(abpair_t));
++
++	for (i = 0; i < num_relations; i++) {
++		abpairs[i].a = rlist[i].a;
++		abpairs[i].b = rlist[i].b;
++	}
++
++	nfs_free_relation_list(rlist, num_relations);
++
++	/* perform the major work: the algebraic square root.
++	   Note that to conserve memory, abpairs is freed in
++	   the following call */
++	logprintf(obj, "Sqrt: Thread %u beginning algebraic square root "
++			  "for dependency %u\n", thread_num, dep_no);
++	mpz_set_ui(dat->sqrt_a, 0);
++	alg_square_root(obj, &(dat->monic_alg_poly), init->n, dat->c, 
++							 dat->rpoly->coeff[1], dat->rpoly->coeff[0], 
++							 abpairs, num_relations, dat->check_q, 
++							 dat->sqrt_a);
++	if (mpz_sgn(dat->sqrt_a) == 0) {
++		logprintf(obj, "Sqrt: Thread %u: dependency %u, algebraic square "
++			"root failed\n", thread_num, dep_no);
++		return;
++	}
++
++	/* an algebraic square root is available; move on
++	   to the final congruence of squares. The arithmetic
++	   is as given in Buhler et. al. with one exception:
++	   when the rational poly is nonmonic there is a 
++	   correction to the final square root value but the 
++	   free relations *do not* figure into it. This latter
++	   point is completely ignored in the literature! */
++	logprintf(obj, "Sqrt: Thread %u beginning congruence of squares "
++			  "for dependency %u\n", thread_num, dep_no);
++
++	eval_poly_derivative(dat->apoly, dat->rpoly->coeff[1], 
++				dat->rpoly->coeff[0], init->n, dat->tmp1);
++	mpz_mul(dat->sqrt_r, dat->sqrt_r, dat->tmp1);
++	mpz_mod(dat->sqrt_r, dat->sqrt_r, init->n);
++
++	mpz_set_ui(dat->exponent, 0);
++	if (mpz_cmp_ui(dat->c, 1) != 0) {
++		mpz_set_ui(dat->exponent, num_relations / 2 + 
++					dat->apoly->degree - 2);
++		mpz_powm(dat->tmp1, dat->c, dat->exponent, init->n);
++		mpz_mul(dat->sqrt_r, dat->sqrt_r, dat->tmp1);
++		mpz_mod(dat->sqrt_r, dat->sqrt_r, init->n);
++	}
++
++	if (mpz_cmp_ui(dat->rpoly->coeff[1], 1) != 0) {
++		mpz_set_ui(dat->exponent, (num_relations -
++			       		num_free_relations) / 2);
++		mpz_set(dat->tmp1, dat->rpoly->coeff[1]);
++
++		if (mpz_sgn(dat->tmp1) < 0)
++			mpz_add(dat->tmp1, dat->tmp1, init->n);
++
++		mpz_powm(dat->tmp2, dat->tmp1, dat->exponent, init->n);
++		mpz_mul(dat->sqrt_a, dat->sqrt_a, dat->tmp2);
++		mpz_mod(dat->sqrt_a, dat->sqrt_a, init->n);
++	}
++
++	/* a final sanity check: square the rational and algebraic 
++	   square roots, expecting the same value modulo n */
++
++	mpz_mul(dat->tmp1, dat->sqrt_r, dat->sqrt_r);
++	mpz_mul(dat->tmp2, dat->sqrt_a, dat->sqrt_a);
++	mpz_mod(dat->tmp1, dat->tmp1, init->n);
++	mpz_mod(dat->tmp2, dat->tmp2, init->n);
++	if (mpz_cmp(dat->tmp1, dat->tmp2) != 0) {
++		logprintf(obj, "Sqrt: Thread %u: dependency %u does not form a "
++				"congruence of squares!\n", thread_num, dep_no);
++		return;
++	}
++
++	/* look for a nontrivial factor of n */
++
++	mpz_add(dat->tmp1, dat->sqrt_r, dat->sqrt_a);
++	mpz_gcd(dat->tmp1, dat->tmp1, init->n);
++
++	if (mpz_cmp_ui(dat->tmp1, 1) == 0) {
++		logprintf(obj, "Sqrt: Thread %u: dependency %u, "
++			      "GCD is 1, no factor found\n",thread_num, dep_no);
++	}
++	else if (mpz_cmp(dat->tmp1, init->n) == 0) {
++		logprintf(obj, "Sqrt: Thread %u: dependency %u, "
++		          "GCD is N, no factor found\n", thread_num, dep_no);
++	}
++	else {
++		/* factor found; add it to the list of factors. 
++		   Stop trying dependencies if the remaining
++		   composite is small enough that another method
++		   will factor it faster.
++
++		   Actually, we should be stopping when the remaining
++		   composite is much larger (70-80 digits), but 
++		   avoid doing this because the MPQS code will run
++		   and wipe out all the NFS relations we've collected */
++
++		/* If the factor has already been found from another thread,
++		   stop calling factor_found to avoid confusing the rest of 
++		   msieve code */
++
++		if (pthread_mutex_lock(status_mutex)) {
++			perror("pthread_mutex_lock for factor_found");
++			return;
++		}
++
++		if (*status) {
++			if (pthread_mutex_unlock(status_mutex)) {
++				perror("pthread_mutex_lock for factor_found");
++				return;
++			}
++			return;
++		}
++
++		if (pthread_mutex_unlock(status_mutex)) {
++			perror("pthread_mutex_lock for factor_found");
++			return;
++		}
++
++		/*  Lock out the factor_found portion to prevent 
++			unspecified behavior from factor_list_add() 
++			which is not known to be thread-safe */
++		if (pthread_mutex_lock(factor_found_mutex)) {
++			perror("pthread_mutex_lock for factor_found");
++			return;
++		}
++
++		uint32 composite_bits;
++		mp_t junk;
++
++		gmp2mp(dat->tmp1, &junk);
++		composite_bits = factor_list_add(obj, 
++					factor_list, &junk);
++
++		/* We are done if composite_bits condition is satisfied 
++		   set status to 1 to prevent other threads from interfering */
++		if (composite_bits < SMALL_COMPOSITE_CUTOFF_BITS) {
++			if (pthread_mutex_lock(status_mutex)) {
++				perror("pthread_mutex_lock for status_mutex");
++				return;
++			}
++
++			*status = 1;
++			
++			if (pthread_mutex_unlock(status_mutex)) {
++				perror("pthread_mutex_lock for status_mutex");
++				return;
++			}
++		}
++		else {
++			/* a single dependency could take hours,
++			   and if N has more than two factors then
++			   we'll need several dependencies to find
++			   them all. So at least report the smallest
++			   cofactor that we just found */
++
++			mpz_divexact(dat->tmp2, init->n, dat->tmp1);
++			gmp_sprintf(obj->mp_sprintf_buf, "%Zd",
++					(mpz_cmp(dat->tmp1, dat->tmp2) < 0) ? 
++					dat->tmp1 : dat->tmp2);
++			logprintf(obj, "found factor: %s\n",
++					obj->mp_sprintf_buf);
++		}
++
++		if (pthread_mutex_unlock(factor_found_mutex)) {
++			perror("pthread_mutex_unlock for factor found");
++			return;
++		}
++	}
++}
++
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: nfs_find_factors_threaded()
++
++Implements a threaded version of nfs_find_factors(), where multiple
++dependencies are worked on at the same time. This eliminates the 
++non-deterministic runtime of nfs_find_factors(), where the time taken
++would scale linearly with the number of "bad" dependencies it encounters.
++
++Currently, all threads are given new tasks at the same time. This is
++to allow all of the threads to finish first, and allow the master thread
++to check if the factor has been found. 
++
++A modification that could be made in the future to modify the threading
++code to allow each thread to be killed at any time. This is a major
++nightmare due to the fact that mutexes are involved and memory is freed
++during the execution of thread, so I have not implemented it here.
++
++As we must wait for all threads to complete, there is a ~10% overhead
++here compared to the time it takes to work on one dependency only.
++
++-------------------------------------------------------------------*/
++
++uint32 nfs_find_factors_threaded(msieve_obj *obj, mpz_t n, 
++			factor_list_t *factor_list) {
++
++	/* external interface for the NFS square root */
++
++	uint32 i, j;
++	sqrt_data *dat; 
++	uint32 *dep_lower;
++	uint32 *dep_upper;
++	time_t cpu_time;
++	uint32 num_threads;
++	thread_control_t control;
++	relation_lists_t *rlists;
++	struct threadpool *pool;
++	pthread_mutex_t *status_mutex;
++	pthread_mutex_t *factor_found_mutex;
++	pthread_cond_t *status_cond;
++	pthread_mutex_t *count_mutex;
++	int *status;
++	int *count;
++	int result;
++	sqrt_thread_data *thread_dat;
++
++	logprintf(obj, "\n");
++	logprintf(obj, "commencing square root phase\n");
++
++	/* Allocate memory for sqrt_data, mutexes etc. */
++	dat = (sqrt_data *)xcalloc((size_t) 1, sizeof(sqrt_data));
++	sqrt_data_init(dat);
++
++	status = (int *)xmalloc(sizeof(int));
++	*status = 0;
++	count = (int *)xmalloc(sizeof(int));
++	*count = 0;
++	dep_lower = (uint32 *)xmalloc(sizeof(uint32));
++	*dep_lower = 1;
++	dep_upper = (uint32 *)xmalloc(sizeof(uint32));
++	*dep_upper = 64;
++	factor_found_mutex = (pthread_mutex_t *)xmalloc(sizeof(pthread_mutex_t));
++	status_mutex = (pthread_mutex_t *)xmalloc(sizeof(pthread_mutex_t));
++	status_cond = (pthread_cond_t *)xmalloc(sizeof(pthread_cond_t));
++	count_mutex = (pthread_mutex_t *)xmalloc(sizeof(pthread_mutex_t));
++
++	/* read in the NFS polynomials */
++
++	cpu_time = time(NULL);
++	if (read_poly(obj, n, dat->rpoly, dat->apoly, NULL)) {
++		logprintf(obj, "polynomials not found\n");
++		goto finished;
++	}
++
++	/* find the values needed to convert the algebraic 
++	   square root back to an integer */
++
++	if (dat->rpoly->degree != 1) {
++		logprintf(obj, "cannot handle non-linear polynomials\n");
++		goto finished;
++	}
++
++	/* construct a monic version of the algebraic poly,
++	   saving off the leading coefficient separately */
++
++	j = dat->apoly->degree;
++	if (mpz_cmp_ui(dat->apoly->coeff[j], 0) < 0) {
++		logprintf(obj, "cannot handle negative leading "
++				"algebraic polynomial coefficient\n");
++		goto finished;
++	}
++
++	mpz_set(dat->c, dat->apoly->coeff[j]);
++	mpz_set(dat->tmp1, dat->c);
++	mpz_set(dat->monic_alg_poly.coeff[j-1], dat->apoly->coeff[j-1]);
++	dat->monic_alg_poly.degree = j;
++	mpz_set_ui(dat->monic_alg_poly.coeff[j], 1);
++
++	for (i = j - 2; (int32)i >= 0; i--) {
++		mpz_mul(dat->monic_alg_poly.coeff[i], dat->apoly->coeff[i], dat->tmp1);
++		if (i > 0)
++			mpz_mul(dat->tmp1, dat->tmp1, dat->c);
++	}
++	get_prime_for_sqrt(&(dat->monic_alg_poly), (uint32)0x80000000, 
++		               &(dat->check_q));
++
++	/* determine the list of dependencies to compute */
++
++	if (obj->nfs_args != NULL) {
++
++		const char *tmp;
++		const char *lower_limit;
++		const char *upper_limit;
++
++		tmp = strstr(obj->nfs_args, "dep_first=");
++		if (tmp != NULL)
++			*dep_lower = strtoul(tmp + 10, NULL, 10);
++
++		tmp = strstr(obj->nfs_args, "dep_last=");
++		if (tmp != NULL)
++			*dep_upper = strtoul(tmp + 9, NULL, 10);
++
++		/* old-style 'X,Y' format */
++
++		upper_limit = strchr(obj->nfs_args, ',');
++		if (upper_limit != NULL) {
++			lower_limit = upper_limit - 1;
++			while (lower_limit > obj->nfs_args &&
++				isdigit(lower_limit[-1])) {
++				lower_limit--;
++			}
++			upper_limit++;
++			*dep_lower = strtoul(lower_limit, NULL, 10);
++			*dep_upper = strtoul(upper_limit, NULL, 10);
++		}
++
++		*dep_lower = MAX(*dep_lower, 1);
++		*dep_upper = MAX(*dep_upper, 1);
++		*dep_lower = MIN(*dep_lower, 64);
++		*dep_upper = MIN(*dep_upper, 64);
++		logprintf(obj, "Sqrt: Handling dependencies %u to %i\n",
++				*dep_lower, *dep_upper);
++	}
++
++	logprintf(obj,"Sqrt: getting relations for each dependency\n");
++	/* Grab all of the relations for each dependency */
++	nfs_read_cycles_threaded(obj, &(dat->fb), &rlists, dep_lower, dep_upper);
++
++	if (rlists == NULL) {
++		logprintf(obj, "Sqrt: Could not process dependency cycle relations.\n");
++		goto finished;
++	}
++
++	/* Time to distribute the tasks to the threads! */
++
++	/* Initialize threadpool and mutexes */
++	logprintf(obj,"Sqrt: initializing threads\n");
++	num_threads = MIN(obj->num_threads, *dep_upper - *dep_lower + 1);
++	logprintf(obj, "Sqrt using %u threads\n", num_threads);
++	control.init = NULL;
++    control.shutdown = NULL;
++    control.data = NULL;
++	pool = threadpool_init(num_threads, (*dep_upper - *dep_lower + 1) * 2,
++						   &control);
++
++	if (pthread_mutex_init(factor_found_mutex, NULL)) {
++		perror("pthread mutex init...");
++		goto finished;
++	}
++	if (pthread_mutex_init(status_mutex, NULL)) {
++		perror("pthread mutex init...");
++		goto finished;
++	}
++	if (pthread_cond_init(status_cond, NULL)) {
++		perror("pthread cond init...");
++		goto finished;
++	}
++	if (pthread_mutex_init(count_mutex, NULL)) {
++		perror("pthread mutex init...");
++		goto finished;
++	}
++
++	/* Prepare the thread data needed for each dependency task */
++	thread_dat = (sqrt_thread_data *)xcalloc((size_t) (*dep_upper - 
++											 		   *dep_lower + 1), 
++									         sizeof(sqrt_thread_data));
++
++	for (i = *dep_lower; i <= *dep_upper; i++) {
++		relation_lists_t *rl = rlists + i - *dep_lower;
++		sqrt_thread_data *data = thread_dat + i - *dep_lower;
++
++		sqrt_thread_data_init(obj, data, dat, rl, 
++				factor_found_mutex, status_mutex, 
++				status_cond, status, count_mutex, 
++				count, n, factor_list);
++	}
++
++	if (pthread_mutex_lock(status_mutex)) {
++		perror("pthread mutex lock...");
++		goto finished;
++	}
++
++	while (*status == 0) {
++		if (pthread_mutex_lock(count_mutex)) {
++			perror("pthread_mutex_lock");
++			goto finished;
++		}
++
++		/* Add tasks in a batch fashion to avoid unusual thread conditions 
++
++		   Tthis could be overhauled in the future if threadpool.c 
++		   and sqrt_thread_find_factor supports task cancellation allowing
++		   for all of the tasks to be added at the same time */
++
++		if (*count == *dep_upper - *dep_lower + 1) {
++			logprintf(obj, "Sqrt: All dependencies have been tried and have "
++					  "failed. Exiting...\n");
++			*status = -1;
++		}
++
++		/* If the batch is completed, add more tasks */
++		if (*count % num_threads == 0) {
++			uint32 start_dep = MIN(*dep_lower + *count, *dep_upper);
++			uint32 end_dep = MIN(start_dep + num_threads - 1, *dep_upper);
++			logprintf(obj, "Sqrt: Adding dependencies %u to %u "
++			 		  "to the task pool\n", start_dep, end_dep);
++
++			for (i = start_dep; i <= end_dep; i++) {
++				sqrt_thread_data *data = thread_dat + i - *dep_lower;
++				task_control_t t;
++				t.init = NULL;
++				t.run = sqrt_thread_find_factor;
++				t.data = data;
++				t.shutdown = sqrt_thread_shutdown;
++				threadpool_add_task(pool, &t, 1);
++			}
++		}
++
++		if (pthread_mutex_unlock(count_mutex)) {
++			perror("pthread_mutex_lock");
++			goto finished;
++		}
++		pthread_cond_wait(status_cond, status_mutex);
++	}
++
++	if (pthread_mutex_unlock(status_mutex)) {
++		perror("pthread mutex unlock...");
++		goto finished;
++	}
++
++	/* freeing up the threadpool and remaining unused dep data */
++	threadpool_free(pool);
++	for (i = *dep_lower + *count; i<=*dep_upper; i++) {
++		free_sqrt_thread_data(thread_dat + i - *dep_lower);
++	}
++	free(thread_dat);
++
++finished:
++	result = *status == -1 ? 0 : 1;
++	cpu_time = time(NULL) - cpu_time;
++	
++	free_sqrt_data(dat);
++	pthread_mutex_destroy(status_mutex);
++	pthread_mutex_destroy(factor_found_mutex);
++	pthread_mutex_destroy(count_mutex);
++	pthread_cond_destroy(status_cond);
++	free(status_mutex);
++	free(factor_found_mutex);
++	free(count_mutex);
++	free(status_cond);
++	free(status);
++	free(count);
++	free(dep_lower);
++	free(dep_upper);
++	logprintf(obj, "sqrtTime: %u\n", (uint32)cpu_time);
++	return result;
++}
+diff -Naur ./msieve-1.52/gnfs/sqrt/sqrt.h ./msieve-custom/gnfs/sqrt/sqrt.h
+--- ./msieve-1.52/gnfs/sqrt/sqrt.h	2011-09-11 11:31:19.000000000 -0400
++++ ./msieve-custom/gnfs/sqrt/sqrt.h	2015-10-11 20:16:47.000000000 -0400
+@@ -16,11 +16,187 @@
+ #define _GNFS_SQRT_SQRT_H_
+ 
+ #include "gnfs.h"
++#include <thread.h>
+ 
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+ 
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_fb_light_init()
++
++This is performs a light initialization of the mpz_poly structs
++in the factor_base_t.
++
++Used only in sqrt_data_init()
++
++-------------------------------------------------------------------*/
++
++void sqrt_fb_light_init (factor_base_t *fb);
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_fb_light_copy_a_r_poly()
++
++This is performs a light copy of the mpz_poly structs
++in the factor_base_t.
++
++Used only in sqrt_data_deep_copy()
++
++-------------------------------------------------------------------*/
++
++void sqrt_fb_light_copy_a_r_poly (factor_base_t *dst, factor_base_t *src);
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Struct: sqrt_data
++
++Contains all of the data necessary for the sqrt stage, to be passed
++to each thread.
++
++-------------------------------------------------------------------*/
++
++typedef struct {
++	uint32 check_q;
++	factor_base_t fb;
++	mpz_poly_t monic_alg_poly;
++	mpz_poly_t *rpoly;
++	mpz_poly_t *apoly;
++	mpz_t exponent, sqrt_r, sqrt_a;
++	mpz_t c, tmp1, tmp2;
++} sqrt_data;
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_data_init()
++
++This is performs a initialization of the sqrt_data struct.
++
++Used in sqrt_data_deep_copy() and nfs_find_factors_threaded().
++
++-------------------------------------------------------------------*/
++
++void sqrt_data_init (sqrt_data *dat);
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_data_deep_copy()
++
++This is performs a deep copy of the sqrt_data struct. Only pass 
++in an uninitialized, but memory allocated, sqrt_data pointer as
++dst. The current method does not do the correct checking to
++ensure memory-safety otherwise.
++
++Used in nfs_find_factors_threaded() in order to make a copy of
++sqrt_data for each of the threads.
++
++-------------------------------------------------------------------*/
++
++void sqrt_data_deep_copy (sqrt_data *dst, sqrt_data *src);
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: free_sqrt_data()
++
++Frees sqrt_data.
++
++Used in nfs_find_factors_threaded() and sqrt_thread_shutdown()
++
++-------------------------------------------------------------------*/
++
++void free_sqrt_data (sqrt_data *dat);
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Struct: sqrt_thread_data
++
++Contains all of the data necessary for each thread to compute its
++dependency.
++
++-------------------------------------------------------------------*/
++
++typedef struct {
++	pthread_mutex_t *factor_found_mutex;
++	pthread_mutex_t *status_mutex;
++	pthread_cond_t *status_cond;
++	pthread_mutex_t *count_mutex;
++	int *status;
++	int *count;
++	uint32 num_relations;
++	uint32 num_free_relations;
++	relation_t *rlist;
++	abpair_t *abpairs;
++	sqrt_data *dat;
++	uint32 dep_no;
++	msieve_obj *obj;
++	mpz_t n;
++	factor_list_t *factor_list;
++
++} sqrt_thread_data;
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_thread_data_init()
++
++Initializes the data object required by each thread.
++
++Used in nfs_find_factors_threaded().
++
++-------------------------------------------------------------------*/
++
++void sqrt_thread_data_init(msieve_obj *obj, 
++				sqrt_thread_data *thread_dat, 
++				sqrt_data *dat, relation_lists_t *rl, 
++				pthread_mutex_t *factor_found_mutex,
++				pthread_mutex_t *status_mutex, 
++				pthread_cond_t *status_cond, int *status, pthread_mutex_t *count_mutex, 
++				int *count, mpz_t n, factor_list_t *factor_list);
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: free_sqrt_thread_data()
++
++Frees the thread data object upon completion of the thread.
++
++Used in nfs_find_factors_threaded() and sqrt_thread_shutdown().
++
++-------------------------------------------------------------------*/
++
++void free_sqrt_thread_data(sqrt_thread_data *data);
++
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: sqrt_thread_shutdown()
++
++Performs necessary clean up of thread data after the task is complete.
++
++Used in nfs_find_factors_threaded().
++
++-------------------------------------------------------------------*/
++
++void sqrt_thread_shutdown(void *arg, int thread_num);
++
+ uint32 get_prime_for_sqrt(mpz_poly_t *alg_poly,
+ 			  uint32 min_value,
+ 			  uint32 *q_out); 
+diff -Naur ./msieve-1.52/gnfs/sqrt/sqrt_a.c ./msieve-custom/gnfs/sqrt/sqrt_a.c
+--- ./msieve-1.52/gnfs/sqrt/sqrt_a.c	2013-06-07 21:43:54.000000000 -0400
++++ ./msieve-custom/gnfs/sqrt/sqrt_a.c	2015-10-11 20:16:47.000000000 -0400
+@@ -590,7 +590,7 @@
+ 			mpz_t m0, abpair_t *rlist, 
+ 			uint32 num_relations, uint32 check_q,
+ 			mpz_t sqrt_a) {
+-	
++
+ 	/* external interface for computing the algebraic
+ 	   square root */
+ 
+@@ -690,5 +690,5 @@
+ 	mpz_poly_free(&alg_sqrt);
+ 	mpz_poly_free(&d_alg_poly);
+ 	mpz_clear(q);
+-	alg_poly->degree++;
+-}
++	alg_poly->degree++;	
++}
+\ No newline at end of file
+diff -Naur ./msieve-1.52/include/common.h ./msieve-custom/include/common.h
+--- ./msieve-1.52/include/common.h	2013-08-07 20:19:23.000000000 -0400
++++ ./msieve-custom/include/common.h	2015-10-11 20:16:47.000000000 -0400
+@@ -284,6 +284,26 @@
+ 	la_cycle_t cycle;       /* list of relations comprising this column */
+ } la_col_t;
+ 
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Struct: la_dep_t
++
++This struct allows for a list of dependencies to be created, each
++containing a list of cycles. 
++
++Used to collect cycles in read_cycles_threaded() and then relations
++in nfs_get_cycle_relations_threaded().
++
++-------------------------------------------------------------------*/
++
++typedef struct {
++	la_col_t *column;
++	uint32 num_cycles;
++	uint32 curr_cycle;
++} la_dep_t;
++
+ /* merge src1[] and src2[] into merge_array[], assumed
+    large enough to hold the merged result. Return the
+    final number of elements in merge_array */
+@@ -335,6 +355,32 @@
+ 		uint32 dependency,
+ 		uint32 *colperm);
+ 
++/*------------------------------------------------------------------
++
++Modification to msieve version 1.52
++
++Method: read_cycles_threaded()
++
++This is a modified version of read_cycles() that enables the 
++threading of the square root stage. 
++
++The key modification is that it creates lists of cycles (and relation
++ids within them) for each of the dependencies in one pass of the .cyc
++ cycle file.
++
++It also takes in uint32 pointers for dep_lower and dep_upper. This
++allows for the modification of dep_lower and dep_upper, as some of 
++the dependencies will not contain any cycles. This differs from the 
++original code, which due to its sequential nature would normally "hit"
++a "good" dependency before running out of dependencies.
++
++-------------------------------------------------------------------*/
++
++void read_cycles_threaded(msieve_obj *obj, 
++		la_dep_t **dep_cycle_list_out, 
++		uint32 *dep_lower,
++		uint32 *dep_upper);
++
+ /*-------------- MISCELLANEOUS STUFF ----------------------------------*/
+ 
+ #define POSITIVE 0
+diff -Naur ./msieve-1.52/include/thread.h ./msieve-custom/include/thread.h
+--- ./msieve-1.52/include/thread.h	2012-11-11 09:58:30.000000000 -0500
++++ ./msieve-custom/include/thread.h	2015-10-11 20:16:47.000000000 -0400
+@@ -99,7 +99,6 @@
+ int threadpool_drain(struct threadpool *pool,
+ 			int blocking);
+ 
+-
+ #ifdef __cplusplus
+ }
+ #endif

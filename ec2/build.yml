@@ -1,7 +1,6 @@
 ---
 - name: Install cado on host and copy over custom files
   hosts: "{{ ami_builder.group }}"
-#  sudo: yes
   vars_files:
    - vars/custom.yml
    - vars/common.yml
