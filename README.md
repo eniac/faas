@@ -11,15 +11,39 @@ The tool was built using the AWS region 'us-east' and currently has many hard-co
 This section shows you how to quickly get set up to factor. 
 
 ### Set up command machine (e.g., your workstation)
-Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro_installation.html#installation).
-
 Set up and configure AWS CLI using these [instructions](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html).
+Make sure that your ~/.aws/config looks like the following:
+
+    [default]
+    region = <EC2-region>
+    output = json
+
+and your ~/.aws/credentials looks like
+
+    [default]
+    aws_access_key_id = <key_id>
+    aws_secret_access_key = <access_key>
+
+Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro_installation.html#installation) and configure Boto (python interface to AWS) using these [instructions](http://docs.ansible.com/ansible/intro_dynamic_inventory.html#example-aws-ec2-external-inventory-script).
 
 Install GNU Parallel using these [instructions](http://www.gnu.org/software/parallel/).
 
 ### Go to the ec2 directory (some of our scripts use relative paths)
 
     >$ cd ec2
+
+### Download Ansible EC2 dynamic inventory scripts
+
+    >$ wget https://raw.githubusercontent.com/ansible/ansible/devel/contrib/inventory/ec2.py
+    >$ chmod +x ec2.py
+    >$ wget https://raw.githubusercontent.com/ansible/ansible/devel/contrib/inventory/ec2.ini
+
+Set the following values in ec2.ini.
+
+    regions = <EC2-region>  # you can leave this as 'all', but the script runs more quickly with a single region
+    cache_max_age = 0       # we want to always see the most up-to-date info about running instances, so do not cache
+    rds = False             # if your AWS user does not have rds permissions
+    elasticache = False     # if your AWS user does not have elasticache permissions
 
 ### Configure AWS (Amazon Web Services) environment
 The following script will create a new AWS VPC (Virtual Private Cloud) configured for FaaS. 
@@ -30,8 +54,8 @@ The following script will create a new AWS VPC (Virtual Private Cloud) configure
 
     >$ vim vars/custom.yml
 
-### Optional: Build a base AMI
-We provide a public AMI (ami-e1d39c84), which is the result of running the following script. You can create your own base AMI if you wish. It takes 20-30 minutes.
+### Build a base AMI
+We provide a public AMI for the region us-east-1 (ami-19642b7c), which is the result of running the following script. To use our public AMI, replace the value of the 'base\_image' variable in 'vars/ec2.py' with 'ami-19642b7c' and do not run the script. The script takes 20-30 minutes to run.
 
     >$ ./build-base.sh
 

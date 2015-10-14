@@ -35,7 +35,8 @@ slave:
     spot_price: 0.05
     spot_wait_timeout: 1200
     launch_groups:
-     - { tag: "{{ my_tag }}_slave_0", zone: '{{ ec2.subnets.0.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.0.subnet_id }}', count: 1 }
-     - { tag: "{{ my_tag }}_slave_1", zone: '{{ ec2.subnets.1.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.1.subnet_id }}', count: 1 }
-     - { tag: "{{ my_tag }}_slave_2", zone: '{{ ec2.subnets.2.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.2.subnet_id }}', count: 1 }
-     - { tag: "{{ my_tag }}_slave_3", zone: '{{ ec2.subnets.3.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.3.subnet_id }}', count: 1 }
+     - { tag: "{{ my_tag }}_slave_0", zone: '{{ ec2.subnets.0.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.0.subnet_id }}', count: 4 }
+# To launch nodes in other availability regions, uncomment and modify the following lines.    
+#     - { tag: "{{ my_tag }}_slave_1", zone: '{{ ec2.subnets.1.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.1.subnet_id }}', count: 1 }
+#     - { tag: "{{ my_tag }}_slave_2", zone: '{{ ec2.subnets.2.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.2.subnet_id }}', count: 1 }
+#     - { tag: "{{ my_tag }}_slave_3", zone: '{{ ec2.subnets.3.availability_zone }}', vpc_subnet_id: '{{ ec2.subnets.3.subnet_id }}', count: 1 }

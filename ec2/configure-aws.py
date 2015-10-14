@@ -1,13 +1,10 @@
 #!/usr/bin/python
 
-# LTV
-# Last Edit: 10.07.15
-# Create and configure a VPC for FaaS
-
 import subprocess
 import json
 import shlex
 import os
+import sys
 
 def run_command(command):
     args = shlex.split(command)
@@ -17,7 +14,42 @@ def run_command(command):
 
 print('--- Starting AWS Configuration ---')
 
-# Create VPC (http://docs.aws.amazon.com/cli/latest/reference/ec2/create-vpc.html)
+# Figure out which region we are in
+region = None
+aws_config_file = os.path.join(os.path.expanduser('~'), '.aws/config')
+with open(aws_config_file, 'r') as f:
+    for line in f:
+        if line.lower().startswith('region'):
+            region = line.split('=')[1].strip()
+if region == None:
+    print('Unable to find region in ~/.aws/config')
+    sys.exit(1)
+
+print('Using region {} found in ~/.aws/config'.format(region))
+
+ec2_regions = ['us-east-1', 'us-west-1', 'us-west-2', 'eu-west-1', 'eu-central-1', 'ap-southeast-1', 'ap-southeast-2', 'ap-northeast-1', 'sa-east-1']
+
+if region not in ec2_regions:
+    print("Unrecognized EC2 region: {}".format(region))
+    sys.exit(1)
+
+# Get subnets in region that support the spot instance types that we will launch,
+# since not every availability zone supports all instance types.
+from datetime import datetime
+now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+instance_type = 'c4.8xlarge'
+history = json.loads(run_command('aws ec2 describe-spot-price-history --instance-types {instance_type} --start-time {now} --end-time {now} --product-description "Linux/UNIX (Amazon VPC)"'.format(now=now, instance_type=instance_type))[0]).get('SpotPriceHistory')
+if not history:
+    print("Unable to check spot price history for instance type {instance_type} in region {region}".format(instance_type=instance_type, region=region))
+    sys.exit(1)
+availability_zones = [x['AvailabilityZone'] for x in history]
+
+# Pick a subnet for each availability zone.
+zone_subnet_map = {}
+for index,zone in enumerate(availability_zones):
+    zone_subnet_map[zone] = '10.0.{}.0/24'.format(index)
+
+# Create VPC (http://docs.aws.amazon.com/cli/latest/reference/ec2/create-vpc.html). Note: this may fail if you already have too many VPCs.
 cidr_block = '10.0.0.0/16'
 vpc_id = json.loads(run_command('aws ec2 create-vpc --cidr-block {cidr_block}'.format(cidr_block=cidr_block))[0])['Vpc']['VpcId']
 print("Created VPC {vpc_id}".format(vpc_id=vpc_id))
@@ -56,7 +88,7 @@ print("Created route table {rt_id} with entry to gateway {ig_id}".format(rt_id=r
 
 # Create subnets for each availability zone that you want to use. Since we are added all possible ip addresses from these subnets to the Slurm config, use small subnets (/24 or smaller). 
 vpc_subnets = []
-for az,cidr in [('us-east-1b', '10.0.0.0/24'), ('us-east-1c', '10.0.1.0/24'), ('us-east-1d', '10.0.2.0/24'), ('us-east-1e', '10.0.3.0/24')]:
+for az,cidr in zone_subnet_map.items():
     subnet = (json.loads(run_command('aws ec2 create-subnet --vpc-id {vpc_id} --cidr-block {cidr} --availability-zone {az}'.format(vpc_id=vpc_id, cidr=cidr, az=az))[0])['Subnet'])
     # Associate previously created route table with subnet
     run_command('aws ec2 associate-route-table --route-table-id {rt_id} --subnet-id {sn_id}'.format(rt_id=rt_id, sn_id = subnet['SubnetId']))
@@ -66,18 +98,21 @@ for az,cidr in [('us-east-1b', '10.0.0.0/24'), ('us-east-1c', '10.0.1.0/24'), ('
     print('Created subnet {subnet_id} in availability zone {az} with cidr block {cidr} with associated route table {rt_id}'.format(subnet_id = subnet['SubnetId'], az=subnet['AvailabilityZone'], cidr=subnet['CidrBlock'], rt_id=rt_id))
 
 # Create placement group
-placement_group = 'faas-cluster2'
+placement_group = 'faas-cluster'
 run_command('aws ec2 create-placement-group --group-name {placement_group} --strategy cluster'.format(placement_group=placement_group))
 print('Created placement group {placement_group}'.format(placement_group=placement_group))
 
 # Create key pair
-key_pair = 'faas2'
+key_pair = 'faas'
 key_str = json.loads(run_command('aws ec2 create-key-pair --key-name {key_pair}'.format(key_pair=key_pair))[0])['KeyMaterial']
 key_file = '{home}/.ssh/{key_pair}.pem'.format(home=os.path.expanduser('~'), key_pair=key_pair)
 with open(key_file, 'w') as f:
     f.write(key_str)
 os.chmod(key_file, 0o600)
 print('Created key pair {key_pair} at {key_file}'.format(key_pair=key_pair, key_file=key_file))
+
+# Find an Ubuntu base image to use for this availability region.
+base_image = json.loads(run_command('aws ec2 describe-images --filters Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-20150325')[0])['Images'][0]['ImageId']
 
 # Write variables to file in yaml format
 var_file = 'vars/ec2.yml'
@@ -86,14 +121,14 @@ with open(var_file, 'w') as f:
     f.write('# This file is created and will be overwritten by configure-aws.py.\n')
     f.write('---\n')
     f.write('ec2:\n')
-    f.write('    region: us-east-1\n')
-    f.write('    vpc_id: {vpc_id}\n'.format(vpc_id=vpc_id))
-    f.write('    cidr_block: {cidr_block}\n'.format(cidr_block=cidr_block))
+    f.write('    region: {}\n'.format(region))
+    f.write('    vpc_id: {}\n'.format(vpc_id))
+    f.write('    cidr_block: {}\n'.format(cidr_block))
     f.write('    device_name: /dev/sda1\n')
-    f.write('    security_group: {sg_name}\n'.format(sg_name=sg_name))
-    f.write('    placement_group: {placement_group}\n'.format(placement_group=placement_group))
-    f.write('    ssh_key: {key_pair}\n'.format(key_pair=key_pair))
-    f.write('    base_image: ami-e1d39c84\n') # ami-d05e75b8 is the Amazon base Ubuntu Image. ami-e1d39c84 is our base image that we provide for convenience.
+    f.write('    security_group: {}\n'.format(sg_name))
+    f.write('    placement_group: {}\n'.format(placement_group))
+    f.write('    ssh_key: {}\n'.format(key_pair))
+    f.write('    base_image: {}\n'.format(base_image))
     f.write('    custom_image: \'\'\n')
     f.write('    image_name: faas image\n')
     f.write('    master_private_ip: 10.0.0.4\n')

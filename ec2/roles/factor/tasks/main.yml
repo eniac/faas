@@ -2,8 +2,8 @@
 - name: copy over custom cado parameters file
   template: src=cado_params.j2 dest={{ params_file_remote }}
   tags: params
-- copy: src=~/.boto dest=/home/ubuntu/.boto
-  tags: boto
+- file: state=directory path=/home/ubuntu/.aws
+- copy: src=~/.aws/credentials dest=/home/ubuntu/.aws/credentials
 - file: state=directory dest={{ faasdir_remote }} owner=ubuntu group=ubuntu
   sudo: yes
   tags: faas
