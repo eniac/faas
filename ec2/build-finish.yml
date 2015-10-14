@@ -21,7 +21,7 @@
         region: "{{ ec2.region }}"
         description: "slurm, NFS, supervisor, cado-nfs, msieve" 
         wait: yes
-        wait_timeout: 1200
+        wait_timeout: 1800
         instance_id: "{{ hostvars[groups[ami_builder.group][0]].ec2_id }}"
       register: ami_output
       tags: always
