@@ -46,7 +46,7 @@ availability_zones = [x['AvailabilityZone'] for x in history]
 
 # Pick a subnet for each availability zone.
 zone_subnet_map = {}
-for index,zone in enumerate(availability_zones):
+for index,zone in enumerate(sorted(availability_zones)):
     zone_subnet_map[zone] = '10.0.{}.0/24'.format(index)
 
 # Create VPC (http://docs.aws.amazon.com/cli/latest/reference/ec2/create-vpc.html). Note: this may fail if you already have too many VPCs.
@@ -74,7 +74,7 @@ print("Enabled DNS support and hostnames for VPC")
 # Create Security Group
 sg_name = "faas"
 sg_id = json.loads(run_command('aws ec2 create-security-group --group-name \"{sg_name}\" --vpc-id {vpc_id} --description \"{sg_desc}\"'.format(vpc_id=vpc_id, sg_name=sg_name, sg_desc="faas security group"))[0])['GroupId']
-print("Created security group \"{sg_name}\"; {sg_id}".format(sg_name=sg_name, sg_id=sg_id))
+print("Created security group {sg_name} with id {sg_id}".format(sg_name=sg_name, sg_id=sg_id))
 
 # Add ingress rules to security group to allow SSH access. TODO: Modify this to be more restrictive. Ports 22 and 9001 are probably the only ones that need to remain open for SSH and supervisor, and only from the IP address of the control machine.
 run_command('aws ec2 authorize-security-group-ingress --group-id {sg_id} --protocol all --port=all --cidr 0.0.0.0/0'.format(sg_id=sg_id))
@@ -95,21 +95,29 @@ for az,cidr in zone_subnet_map.items():
     vpc_subnets.append(subnet)
     # Auto-assign public ip in subnet
     run_command('aws ec2 modify-subnet-attribute --subnet-id {sn_id} --map-public-ip-on-launch'.format(sn_id=subnet['SubnetId']))
-    print('Created subnet {subnet_id} in availability zone {az} with cidr block {cidr} with associated route table {rt_id}'.format(subnet_id = subnet['SubnetId'], az=subnet['AvailabilityZone'], cidr=subnet['CidrBlock'], rt_id=rt_id))
+    print('Created subnet {subnet_id} in availability zone {az} with cidr block {cidr}'.format(subnet_id = subnet['SubnetId'], az=subnet['AvailabilityZone'], cidr=subnet['CidrBlock'], rt_id=rt_id))
 
 # Create placement group
 placement_group = 'faas-cluster'
-run_command('aws ec2 create-placement-group --group-name {placement_group} --strategy cluster'.format(placement_group=placement_group))
-print('Created placement group {placement_group}'.format(placement_group=placement_group))
+try:
+    json.loads(run_command('aws ec2 describe-placement-groups --group-name {}'.format(placement_group))[0])
+    print('Placement group {} already exists'.format(placement_group))
+except Exception as e:
+    run_command('aws ec2 create-placement-group --group-name {} --strategy cluster'.format(placement_group))
+    print('Created placement group {}'.format(placement_group))
 
 # Create key pair
 key_pair = 'faas'
-key_str = json.loads(run_command('aws ec2 create-key-pair --key-name {key_pair}'.format(key_pair=key_pair))[0])['KeyMaterial']
-key_file = '{home}/.ssh/{key_pair}.pem'.format(home=os.path.expanduser('~'), key_pair=key_pair)
-with open(key_file, 'w') as f:
-    f.write(key_str)
-os.chmod(key_file, 0o600)
-print('Created key pair {key_pair} at {key_file}'.format(key_pair=key_pair, key_file=key_file))
+try:
+    json.loads(run_command('aws ec2 describe-key-pairs --key-name={}'.format(key_pair))[0])
+    print('Key pair {} already exists'.format(key_pair))
+except Exception as e:
+    key_str = json.loads(run_command('aws ec2 create-key-pair --key-name {key_pair}'.format(key_pair=key_pair))[0])['KeyMaterial']
+    key_file = '{home}/.ssh/{key_pair}.pem'.format(home=os.path.expanduser('~'), key_pair=key_pair)
+    with open(key_file, 'w') as f:
+        f.write(key_str)
+    os.chmod(key_file, 0o600)
+    print('Created key pair {key_pair} at {key_file}'.format(key_pair=key_pair, key_file=key_file))
 
 # Find an Ubuntu base image to use for this availability region.
 base_image = json.loads(run_command('aws ec2 describe-images --filters Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-20150325')[0])['Images'][0]['ImageId']
