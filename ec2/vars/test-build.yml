@@ -1,9 +1,9 @@
 # Specify slurm-specific settings here
 slurm:
     partition_name: factor
-# The slurm nodes 
+    # We list a slurm node for each possible IP in all subnets 
     nodes:                                      
-     - { name: "ip-10-0-[0-3]-[4-254]", cpus: 2 }
+     - { name: "ip-10-0-[0-4]-[4-254]", cpus: 2 }
     shared: "YES:2" 
 
 ami_builder:

@@ -55,7 +55,7 @@ The following script will create a new AWS VPC (Virtual Private Cloud) configure
     >$ vim vars/custom.yml
 
 ### Build a base AMI
-We provide a public AMI for the region us-east-1 (ami-19642b7c), which is the result of running the following script. To use our public AMI, replace the value of the 'base\_image' variable in 'vars/ec2.py' with 'ami-19642b7c' and do not run the script. The script takes 20-30 minutes to run.
+We provide a public AMI for the region us-east-1 (ami-19642b7c), which is the result of running the following script. To use our public AMI, replace the value of the 'base\_image' variable in 'vars/ec2.py' with 'ami-19642b7c' and do not run the script. The script can take up to an hour to run.
 
     >$ ./build-base.sh
 
