@@ -16,7 +16,7 @@ username={{ supervisor.username }}
 password={{ supervisor.password }}
 
 [program:factor]
-environment= PYTHONPATH="{{ sourcedir }}/cado-nfs/scripts/cadofactor:{{ faasdir_remote }}/scripts"
+environment= PYTHONPATH="{{ sourcedir }}/cado-nfs/scripts/cadofactor:{{ faasdir_remote }}/factor"
 autostart=false
 autorestart=false
 startsecs=0
@@ -25,7 +25,7 @@ user=ubuntu
 directory=/home/ubuntu
 stdout_logfile=/home/ubuntu/server.stdout
 stderr_logfile=/home/ubuntu/server.stderr
-command=python3 {{ faasdir_remote }}/scripts/factor.py {{ params_file_remote }}
+command=python3 {{ faasdir_remote }}/factor/factor.py {{ params_file_remote }}
 
 ; Send mail when the master server exits unexpectedly
 [eventlistener:crashmail]

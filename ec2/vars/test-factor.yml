@@ -3,10 +3,10 @@ supervisor:
     remote_conf: supervisord.conf
     port: 9001
     # username and password to access the supervisor http server at <server-ip>:<supervisord_port>
-    username: username                
-    password: password 
+    username: '{{ custom.username }}'
+    password: '{{ custom.password }}'
     # supervisor will send crash reports to this address (check your junk mail)
-    email: luke.valenta@gmail.com                   
+    email: '{{ custom.email }}'                
 
 commands:
     post_sieve: '{{ faasdir_remote }}/factor/post_sieve.sh'

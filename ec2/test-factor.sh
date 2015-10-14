@@ -20,7 +20,8 @@ ansible-playbook -i ./ec2.py build-finish.yml
 ansible-playbook -i ./ec2.py launch.yml --tags master --extra-vars="test=yes" 
 
 ## Request spot instances in parallel so instances are launched more quickly. 
-parallel -u ansible-playbook -i ./ec2.py launch.yml --tags {} --extra-vars="test=yes" ::: mpi slave0 slave1 slave2 slave3
+parallel -u ansible-playbook -i ./ec2.py launch.yml --tags {} --extra-vars="test=yes" ::: mpi slave0 
+#slave1 slave2 slave3
 
 # Start factorization
 
