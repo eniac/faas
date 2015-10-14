@@ -1,5 +1,4 @@
 ---
-# Note: These scripts launch nodes in the EC2 region us-east-1. In order to change to a different region, we recommend running 'grep -r us-east-1 .' to find all occurences of the us-east-1. 
 custom:
     # The username and password to use for supervisor. You can check the status of the factoring process on the master node at http://<master-ip>:9001.
     username: luke
