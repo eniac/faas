@@ -24,6 +24,12 @@ and your ~/.aws/credentials looks like
     aws_access_key_id = <key_id>
     aws_secret_access_key = <access_key>
 
+and your ~/.boto config looks like
+
+    [Credentials]
+    aws_access_key_id = <key_id>
+    aws_secret_access_key = <access_key>
+
 Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro_installation.html#installation) and configure Boto (python interface to AWS) using these [instructions](http://docs.ansible.com/ansible/intro_dynamic_inventory.html#example-aws-ec2-external-inventory-script).
 
 Install GNU Parallel using these [instructions](http://www.gnu.org/software/parallel/).
