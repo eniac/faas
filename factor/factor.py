@@ -71,6 +71,8 @@ def setup_logging(workdir, name):
     #cmd_logger.addHandler(file_handler)
     #cmd_logger.addHandler(console_handler)
 
+# Estimate the number of relations that will be required to pass filtering
+# based on previous experiments.
 def estimate_rels_wanted(parameters):
     p = parameters.myparams({'lpba':int,'lpbr':int,'target_density':int, 'N':int}, ['tasks', 'msieve'])
     d = {}
@@ -119,6 +121,8 @@ def estimate_rels_wanted(parameters):
             break
     return num_rels
 
+# Add new parameters that may not have been present in the parameters file.
+# NOTE: This currently will overwrite parameters from the parameter file.
 def set_static_parameters(parameters):
     name = parameters.myparams({"name": str}, ['tasks'])["name"]
     workdir = parameters.myparams({"workdir": str}, ['tasks'])["workdir"]
@@ -131,8 +135,6 @@ def set_static_parameters(parameters):
         rels_wanted = estimate_rels_wanted(parameters)
         parameters.readparams(['tasks.sieve.rels_wanted=%d' % rels_wanted])
         logger.info('rels_wanted unspecified. Setting rels_wanted based on target_density, lpba, and lpbr (%d)', rels_wanted)
-
-
 
     cores_info = {k: v for k, v in (x.split('=') for x in utils.run_command("slurmd -C").split())}
     spm = int(cores_info['Boards']) * int(cores_info['SocketsPerBoard'])
@@ -164,6 +166,7 @@ def set_static_parameters(parameters):
     parameters.readparams(new_params)
     return parameters
 
+# Set parameters based on the cluster setup (e.g., total number of available cores).
 def set_dynamic_parameters(parameters):
     # adjust parameters to fit the cluster that factorization is being run on.
     # if unspecified, set the slurm batch size
@@ -186,7 +189,7 @@ def set_dynamic_parameters(parameters):
 
     return parameters
 
-# Check that all of the required parameters are set, and return a dictionary of { stage: stage_params }
+# Check that all of the required parameters are present, and return a dictionary of { stage: stage_params }
 def check_parameters(parameters):
     params = {}
     # check general parameters
@@ -277,10 +280,6 @@ def check_parameters(parameters):
     stage_keys = stage_program.get_accepted_keys()
     stage_params = parameters.myparams(stage_keys, stage_paths)
     params[stage] = stage_params
-
-    # TODO: add cado linalg/sqrt functionality back
-    # check linalg parameters
-    # check sqrt parameters
 
     # check msieve parameters
     stage = 'msieve'
