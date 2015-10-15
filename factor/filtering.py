@@ -324,7 +324,7 @@ def run(relation_files):
 
     return new_rels_wanted
 
-# TODO: re-enable cado filtering
+# NOTE: Enable cado filtering by uncommenting the following two lines, and commenting out the two lines after that.
 #run.do_cado_filtering = True
 #run.do_msieve_filtering = False
 run.do_cado_filtering = False
