@@ -12,7 +12,7 @@ This section shows you how to quickly get set up to factor.
 
 ### Set up command machine (e.g., your workstation)
 Set up and configure AWS CLI using these [instructions](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html).
-Make sure that your ~/.aws/config looks like the following:
+Make sure that your ~/.aws/config looks like
 
     [default]
     region = <EC2-region>
@@ -24,13 +24,11 @@ and your ~/.aws/credentials looks like
     aws_access_key_id = <key_id>
     aws_secret_access_key = <access_key>
 
-and your ~/.boto config looks like
+Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro_installation.html#installation) and configure Boto (python interface to AWS) using these [instructions](http://docs.ansible.com/ansible/intro_dynamic_inventory.html#example-aws-ec2-external-inventory-script), and make sure your ~/.boto config looks like
 
     [Credentials]
     aws_access_key_id = <key_id>
     aws_secret_access_key = <access_key>
-
-Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro_installation.html#installation) and configure Boto (python interface to AWS) using these [instructions](http://docs.ansible.com/ansible/intro_dynamic_inventory.html#example-aws-ec2-external-inventory-script).
 
 Install GNU Parallel using these [instructions](http://www.gnu.org/software/parallel/).
 
