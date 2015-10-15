@@ -169,10 +169,8 @@ class Sieve:
             os.chmod(batch_file, 0o755)
             utils.run_command('sbatch ' + batch_file)
 
-            # rate-limit job submission so slurm is not overwhelmed
             if i >= 100:
                 logger.debug("Submitted %d/%d sieve jobs", num_submitted, len(jobs))
-                #time.sleep(1)
                 i = 0
                 if self.is_finished():
                     return
@@ -232,7 +230,7 @@ class Sieve:
         except Exception as e:
             logger.warning("Exception in file '%s': %s", filename, e)
 
-        # This will be reached on an exception of if at least 10 relations do not check out
+        # This will be reached on an exception or if at least 10 relations do not check out
         return 0
 
     def check_relation_file(self, filename):
