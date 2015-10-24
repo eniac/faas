@@ -6,7 +6,7 @@
   sudo: yes
 - copy: src=msieve.patch dest={{ sourcedir }}
   sudo: yes
-- patch: strip=1 basedir={{ sourcedir }} src={{ sourcedir }}/msieve.patch
+- patch: strip=1 basedir={{ sourcedir }} src={{ sourcedir }}/msieve.patch remote_src=True
   sudo: yes
 - command: rm -rf {{ sourcedir }}/msieve-custom
   sudo: yes
