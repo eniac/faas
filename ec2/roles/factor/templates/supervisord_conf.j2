@@ -29,5 +29,5 @@ command=python3 {{ faasdir_remote }}/factor/factor.py {{ params_file_remote }}
 
 ; Send mail when the master server exits unexpectedly
 [eventlistener:crashmail]
-command=crashmail -p server -m {{ supervisor.email }} -o "FACTORING CRASHED"
+command=crashmail -p server -m {{ custom.email }} -o "FACTORING CRASHED"
 events=PROCESS_STATE_EXITED
