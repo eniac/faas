@@ -141,7 +141,7 @@ with open(var_file, 'w') as f:
     f.write('    image_name: faas image\n')
     f.write('    master_private_ip: 10.0.0.4\n')
     f.write('    subnets:\n')
-    for sn in vpc_subnets:
+    for sn in sorted(vpc_subnets, key=lambda sn: sn['CidrBlock']):
         f.write('        - {{ availability_zone: {az}, subnet_id: {sn_id}, cidr_block: {cidr} }}\n'.format(az=sn['AvailabilityZone'], sn_id=sn['SubnetId'], cidr=sn['CidrBlock']))
 
 print('--- Finished AWS Configuration ---')
