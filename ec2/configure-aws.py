@@ -23,7 +23,7 @@ with open(aws_config_file, 'r') as f:
             region = line.split('=')[1].strip()
 if region == None:
     print('Unable to find region in ~/.aws/config')
-    sys.exit(1)
+    sys.exit()
 
 print('Using region {} found in ~/.aws/config'.format(region))
 
@@ -31,7 +31,7 @@ ec2_regions = ['us-east-1', 'us-west-1', 'us-west-2', 'eu-west-1', 'eu-central-1
 
 if region not in ec2_regions:
     print("Unrecognized EC2 region: {}".format(region))
-    sys.exit(1)
+    sys.exit()
 
 # Get subnets in region that support the spot instance types that we will launch,
 # since not every availability zone supports all instance types.
@@ -41,7 +41,7 @@ instance_type = 'c4.8xlarge'
 history = json.loads(run_command('aws ec2 describe-spot-price-history --instance-types {instance_type} --start-time {now} --end-time {now} --product-description "Linux/UNIX (Amazon VPC)"'.format(now=now, instance_type=instance_type))[0]).get('SpotPriceHistory')
 if not history:
     print("Unable to check spot price history for instance type {instance_type} in region {region}".format(instance_type=instance_type, region=region))
-    sys.exit(1)
+    sys.exit()
 availability_zones = [x['AvailabilityZone'] for x in history]
 
 # Pick a subnet for each availability zone.
@@ -112,8 +112,19 @@ try:
     json.loads(run_command('aws ec2 describe-key-pairs --key-name={}'.format(key_pair))[0])
     print('Key pair {} already exists'.format(key_pair))
 except Exception as e:
+    ssh_dir = os.path.dirname('{home}/.ssh'.format(home=os.path.expanduser('~')))
+    try: 
+        os.makedirs(ssh_dir)
+    except OSError:
+        if not os.path.isdir(ssh_dir):
+            raise
+    os.chmod(ssh_dir, 0o700)
+    key_file = os.path.join(ssh_dir, '{key_pair}.pem'.format(key_pair=key_pair))
+    if os.path.exists(key_file):
+        print('Key file {key_file} already exists. Please move or rename it.'.format(key_file=key_file))
+        sys.exit()
+
     key_str = json.loads(run_command('aws ec2 create-key-pair --key-name {key_pair}'.format(key_pair=key_pair))[0])['KeyMaterial']
-    key_file = '{home}/.ssh/{key_pair}.pem'.format(home=os.path.expanduser('~'), key_pair=key_pair)
     with open(key_file, 'w') as f:
         f.write(key_str)
     os.chmod(key_file, 0o600)
