@@ -27,6 +27,11 @@ Install Ansible using these [instructions](http://docs.ansible.com/ansible/intro
     [Credentials]
     aws_access_key_id = <key_id>
     aws_secret_access_key = <access_key>
+ 
+Disable host key checking for Ansible hosts if you understand the security risks. Edit ~/.ansible.cfg to add the following lines:
+
+    [defaults]
+    host_key_checking = False
 
 Install GNU Parallel using these [instructions](http://www.gnu.org/software/parallel/).
 
