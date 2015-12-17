@@ -108,18 +108,23 @@ except Exception as e:
 
 # Create key pair
 key_pair = 'faas'
+ssh_dir = os.path.dirname('{home}/.ssh'.format(home=os.path.expanduser('~')))
+try: 
+    os.makedirs(ssh_dir)
+except OSError:
+    if not os.path.isdir(ssh_dir):
+        raise
+os.chmod(ssh_dir, 0o700)
+key_file = os.path.join(ssh_dir, '{key_pair}.pem'.format(key_pair=key_pair))
 try:
     json.loads(run_command('aws ec2 describe-key-pairs --key-name={}'.format(key_pair))[0])
     print('Key pair {} already exists'.format(key_pair))
+    if !os.path.exists(key_file):
+        print('Key file {key_file} does not exist locally, but it is present online. Please either remove the key pair {{ key_pair }} via the AWS console, or move the key to the appropriate location locally.'.format(key_file=key_file, key_pair=key_pair))
+        sys.exit()
+
 except Exception as e:
-    ssh_dir = os.path.dirname('{home}/.ssh'.format(home=os.path.expanduser('~')))
-    try: 
-        os.makedirs(ssh_dir)
-    except OSError:
-        if not os.path.isdir(ssh_dir):
-            raise
-    os.chmod(ssh_dir, 0o700)
-    key_file = os.path.join(ssh_dir, '{key_pair}.pem'.format(key_pair=key_pair))
+
     if os.path.exists(key_file):
         print('Key file {key_file} already exists. Please move or rename it.'.format(key_file=key_file))
         sys.exit()
