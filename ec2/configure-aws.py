@@ -119,7 +119,7 @@ key_file = os.path.join(ssh_dir, '{key_pair}.pem'.format(key_pair=key_pair))
 try:
     json.loads(run_command('aws ec2 describe-key-pairs --key-name={}'.format(key_pair))[0])
     print('Key pair {} already exists'.format(key_pair))
-    if !os.path.exists(key_file):
+    if not os.path.exists(key_file):
         print('Key file {key_file} does not exist locally, but it is present online. Please either remove the key pair {{ key_pair }} via the AWS console, or move the key to the appropriate location locally.'.format(key_file=key_file, key_pair=key_pair))
         sys.exit()
 
