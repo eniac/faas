@@ -100,7 +100,7 @@ The following script will build a new AMI, launch a cluster, and factor the 512-
 ```
 
 ### Collect results
-If all goes to plan, you will recieve an email with the results of the factorization. However, this is research code, and things do not always go as planned :).  
+If all goes to plan, you will recieve an email with the results of the factorization. However, this is research code, and things do not always go as planned :).  Some email providers may mark the result email as spam, and prevent its delivery.
 
 By default, the master node will be stopped (not terminated) after the factorization has completed so that the relevant log files will not be deleted. This will continue to use resources on your Amazon account until the node is terminated. 
 
