@@ -108,7 +108,7 @@ except Exception as e:
 
 # Create key pair
 key_pair = 'faas'
-ssh_dir = os.path.dirname('{home}/.ssh'.format(home=os.path.expanduser('~')))
+ssh_dir = os.path.dirname('{home}/.ssh/'.format(home=os.path.expanduser('~')))
 try: 
     os.makedirs(ssh_dir)
 except OSError:
