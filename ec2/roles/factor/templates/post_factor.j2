@@ -9,7 +9,7 @@ send_results() {
   
   while [ $i -lt $REPEATS ]; do
     echo "Attempt #$((i+1)) to send results..."
-    if sendemail -f results@faas -m "Please see the log file for factorization results." -t {{ custom.email }} -u "FACTORING FINISHED" -a "{{ workdir }}/{{ cado.name }}/{{ cado.name }}.log" -a "/home/ubuntu/server.stderr"; then
+    if sendemail -f results@faas.com -m "Please see the log file for factorization results." -t {{ custom.email }} -u "FACTORING FINISHED" -a "{{ workdir }}/{{ cado.name }}/{{ cado.name }}.log" -a "/home/ubuntu/server.stderr"; then
       break
     fi
     
