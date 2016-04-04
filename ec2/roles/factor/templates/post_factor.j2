@@ -1,7 +1,25 @@
 #!/bin/bash
 
 echo "Emailing results"
-sendemail -f results@faas.com -m "Please see the log file for factorization results." -t {{ custom.email }} -u "FACTORING FINISHED" -a "{{ workdir }}/{{ cado.name }}/{{ cado.name }}.log" -a "/home/ubuntu/server.stderr"
+
+# Retry loop for sendmail until it succeeds, or up to 10 times.
+send_results() {
+  i=0
+  REPEATS=10
+  
+  while [ $i -lt $REPEATS ]; do
+    echo "Attempt #$((i+1)) to send results..."
+    if sendemail -f results@faas -m "Please see the log file for factorization results." -t {{ custom.email }} -u "FACTORING FINISHED" -a "{{ workdir }}/{{ cado.name }}/{{ cado.name }}.log" -a "/home/ubuntu/server.stderr"; then
+      break
+    fi
+    
+    echo "Sleeping 60 seconds before next attempt..."
+    sleep 60
+    let "i+=1"
+  done
+}
+
+send_results
 
 echo "Stopping master node"
 ansible-playbook -i {{ faasdir_remote }}/ec2/ec2.py {{ faasdir_remote }}/ec2/stop-master.yml
