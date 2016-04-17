@@ -93,7 +93,7 @@ To check that your AWS environment is correctly configured, we recommend that yo
 ```
 
 ### Run factorization
-The following script will build a new AMI, launch a cluster, and factor the 512-bit integer that you specified in vars/custom.yml. We recommend that you run the commands in the script one by one. After you've already built a custom AMI, it is no longer necessary to build a new AMI each time, so you may wish to comment out the first few lines. Make sure to terminate any instances with the tags 'faas_master', 'faas_slave', or 'faas_mpi' that might be left over from a previous run before running this script.
+The following script will build a new AMI, launch a cluster, and factor the 512-bit integer that you specified in vars/custom.yml. We recommend that you run the commands in the script one by one. After you've already built a custom AMI, it is no longer necessary to build a new AMI for each 512-bit factorization, so you may wish to comment out the first few lines. NOTE: You should not use the AMI built in test-factor.sh for 512-bit factorizations. Make sure that you terminate any instances with the tags 'faas_master', 'faas_slave', or 'faas_mpi' that might be left over from a previous run before running this script.
 
 ```bash
 >$ ./factor.sh
