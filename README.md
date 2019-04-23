@@ -79,7 +79,7 @@ The following script will create a new AWS VPC (Virtual Private Cloud) configure
 ```
 
 ### Build a base AMI
-We provide a public AMI for the region us-east-1 (ami-ea154180), which is the result of running the following script. To use our public AMI, replace the value of the 'base\_image' variable in 'vars/ec2.yml' with 'ami-ea154180' and do not run the script. The script can take up to an hour to run. If the script fails halfway through (e.g., if you lose a connection to the instance), you can re-run it and it will skip any steps that have already been completed.
+Use the following script to build a base AMI, which can can up to an hour to run. If the script fails halfway through (e.g., if you lose a connection to the instance), you can re-run it and it will skip any steps that have already been completed.
 
 ```bash
 >$ ./build-base.sh
