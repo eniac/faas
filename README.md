@@ -79,7 +79,7 @@ The following script will create a new AWS VPC (Virtual Private Cloud) configure
 ```
 
 ### Build a base AMI
-Use the following script to build a base AMI, which can can up to an hour to run. If the script fails halfway through (e.g., if you lose a connection to the instance), you can re-run it and it will skip any steps that have already been completed.
+Use the following script to build a base AMI, which can take up to an hour to run. If the script fails halfway through (e.g., if you lose a connection to the instance), you can re-run it and it will skip any steps that have already been completed.
 
 ```bash
 >$ ./build-base.sh
