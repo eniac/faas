@@ -5,16 +5,16 @@
     openmpi_ver: openmpi-1.10.0
     openmpi_tar: openmpi-1.10.0.tar.gz
 - get_url: dest=/tmp url={{ openmpi_url }}
-  sudo: yes
+  become: true
 - unarchive: copy=no src=/tmp/{{ openmpi_tar }} dest=/usr/src
-  sudo: yes
+  become: true
 - shell: ./configure --prefix="/opt/{{ openmpi_ver }}" chdir=/usr/src/{{ openmpi_ver }}
-  sudo: yes
+  become: true
 - shell: make -j4 all chdir=/usr/src/{{ openmpi_ver }}
-  sudo: yes
+  become: true
 - shell: make install chdir=/usr/src/{{ openmpi_ver }}
-  sudo: yes
+  become: true
 - lineinfile: dest=/etc/profile line='export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/opt/{{ openmpi_ver }}/lib/"'
-  sudo: yes
+  become: true
 - shell: ln -s -f /opt/{{ openmpi_ver }}/bin/* /usr/bin
-  sudo: yes
+  become: true

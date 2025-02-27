@@ -6,22 +6,22 @@ set -e
 # Build AMI
 
 ## Start ami_builder node
-ansible-playbook -i ./ec2.py build-start.yml
+#ansible-playbook -i inventory/aws_ec2.yml build-start.yml
 
 ## Build image
-ansible-playbook -i ./ec2.py build.yml --tags custom
+#ansible-playbook -i inventory/aws_ec2.yml build.yml --tags custom
 
 ## Create AMI from running instance and then terminate instance
-ansible-playbook -i ./ec2.py build-finish.yml 
+#ansible-playbook -i inventory/aws_ec2.yml build-finish.yml 
 
 # Launch cluster
 
 ## Launch the master node first so that the NFS and Slurm controller are up before the mpi and slave nodes try to connect.
-ansible-playbook -i ./ec2.py launch.yml --tags master
+ansible-playbook -i inventory/aws_ec2.yml launch.yml --tags master
 
 ## Request spot instances in parallel so instances are launched more quickly. 
-parallel -u ansible-playbook -i ./ec2.py launch.yml --tags {} ::: mpi slave0 #slave1 slave2 slave3 # <-- uncomment if you're using multiple launch groups
+parallel -u ansible-playbook -i inventory/aws_ec2.yml launch.yml --tags {} ::: mpi slave0 #slave1 slave2 slave3 # <-- uncomment if you're using multiple launch groups
 
 # Start factorization
 
-ansible-playbook -i ./ec2.py factor.yml
+ansible-playbook -i inventory/aws_ec2.yml factor.yml

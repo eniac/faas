@@ -1,0 +1,13 @@
+plugin: amazon.aws.aws_ec2
+regions:
+  - us-west-2
+filters:
+  instance-state-name: running
+keyed_groups:
+  - key: tags.Name
+    prefix: tag_Name
+  - key: instance_type
+    prefix: type
+cache: false
+rds: false
+elasticache: false

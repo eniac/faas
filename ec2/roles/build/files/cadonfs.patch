@@ -1,0 +1,510 @@
+diff --git a/filter/reconstructlog.c b/filter/reconstructlog.c
+index 58d6312ca..b987c7726 100644
+--- a/filter/reconstructlog.c
++++ b/filter/reconstructlog.c
+@@ -11,6 +11,8 @@
+ #endif
+ #define DEBUG 0
+ 
++#pragma GCC diagnostic ignored "-Wstringop-truncation"
++
+ stats_data_t stats; /* struct for printing progress */
+ 
+ /*********************** mutex for multi threaded version ********************/
+diff --git a/filter/singleton_removal.c b/filter/singleton_removal.c
+index ceef208da..9c21c28f6 100644
+--- a/filter/singleton_removal.c
++++ b/filter/singleton_removal.c
+@@ -8,6 +8,8 @@
+ #include "purge_matrix.h"
+ #include "singleton_removal.h"
+ 
++#pragma GCC diagnostic ignored "-Wmisleading-indentation"
++
+ /* If HAVE_SYNC_FETCH is not defined, we will use mutex for multithreaded
+  * version of the code. May be too slow. */
+ #ifndef HAVE_SYNC_FETCH
+diff --git a/linalg/bwc/acollect.c b/linalg/bwc/acollect.c
+index 9706cf9e1..6215b3c1f 100644
+--- a/linalg/bwc/acollect.c
++++ b/linalg/bwc/acollect.c
+@@ -28,7 +28,7 @@ void usage()
+     exit(EXIT_FAILURE);
+ }
+ 
+-struct bw_params bw[1];
++//struct bw_params bw[1];
+ 
+ int remove_old = 0;
+ int bits_per_coeff = 1;
+diff --git a/linalg/bwc/matmul-bucket.cpp b/linalg/bwc/matmul-bucket.cpp
+index 8da7a02e4..f37e452d1 100644
+--- a/linalg/bwc/matmul-bucket.cpp
++++ b/linalg/bwc/matmul-bucket.cpp
+@@ -54,6 +54,8 @@ using namespace std;
+ 
+ #include "matmul_facade.h"
+ 
++#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
++
+ /* {{{ Documentation
+  *
+  * Parameters referred to by this documentation text may be tuned via
+diff --git a/linalg/bwc/matmul-sliced.cpp b/linalg/bwc/matmul-sliced.cpp
+index 39b145e45..410ae8cb2 100644
+--- a/linalg/bwc/matmul-sliced.cpp
++++ b/linalg/bwc/matmul-sliced.cpp
+@@ -30,6 +30,8 @@ using namespace std;
+ 
+ #include "matmul_facade.h"
+ 
++#pragma GCC diagnostic ignored "-Wclass-memaccess"
++
+ // assembly is now disabled for this code because the semantics of the
+ // asm code have changed.
+ 
+diff --git a/linalg/bwc/mpfq/mpfq.h b/linalg/bwc/mpfq/mpfq.h
+index 9240e1b86..13d24d140 100644
+--- a/linalg/bwc/mpfq/mpfq.h
++++ b/linalg/bwc/mpfq/mpfq.h
+@@ -53,21 +53,30 @@ LEXLE3(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL,X,Y,Z
+ 
+ 
+ #ifndef GNUC_VERSION
++#ifndef __GNUC__
++#define GNUC_VERSION(X,Y,Z) 0
++#else
+ #define GNUC_VERSION(X,Y,Z)     \
+-    defined(__GNUC__) &&        \
+-(__GNUC__ == X && __GNUC_MINOR__ == Y && __GNUC_PATCHLEVEL__ == Z)
++(__GNUC__ == (X) && __GNUC_MINOR__ == (Y) && __GNUC_PATCHLEVEL__ == (Z))
++#endif
+ #endif
+ 
+ #ifndef GNUC_VERSION_ATLEAST
++#ifndef __GNUC__
++#define GNUC_VERSION_ATLEAST(X,Y,Z) 0
++#else
+ #define GNUC_VERSION_ATLEAST(X,Y,Z)     \
+-    defined(__GNUC__) &&        \
+-LEXGE3(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__,X,Y,Z)
++LEXGE3(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__,(X),(Y),(Z))
++#endif
+ #endif
+ 
+ #ifndef GNUC_VERSION_ATMOST
++#ifndef __GNUC__
++#define GNUC_VERSION_ATMOST(X,Y,Z) 0
++#else
+ #define GNUC_VERSION_ATMOST(X,Y,Z)     \
+-    defined(__GNUC__) &&        \
+-LEXLE3(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__,X,Y,Z)
++LEXLE3(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__,(X),(Y),(Z))
++#endif
+ #endif
+ 
+ 
+diff --git a/linalg/bwc/plingen.cpp b/linalg/bwc/plingen.cpp
+index 3c01c72bb..b326da935 100644
+--- a/linalg/bwc/plingen.cpp
++++ b/linalg/bwc/plingen.cpp
+@@ -906,7 +906,6 @@ int load_mpi_checkpoint_file_scattered(bmstatus_ptr bm, bigmatpoly xpi, unsigned
+             if (!ok) {
+                 if (!rank)
+                     fprintf(stderr, "Warning: cannot open %s\n", cp->datafile);
+-                if (data) free(data);
+                 break;
+             }
+             bigmatpoly_finish_init(ab, xpi, m+n, m+n, pi_size);
+diff --git a/macros.h b/macros.h
+index 6dd28b614..caea45717 100644
+--- a/macros.h
++++ b/macros.h
+@@ -98,33 +98,51 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ #define LEXLE3(X,Y,Z,A,B,C) LEXGE3(A,B,C,X,Y,Z)
+ 
+ #ifndef GNUC_VERSION
+-#define GNUC_VERSION(X,Y,Z)     \
+-    (defined(__GNUC__) &&        \
+-(__GNUC__ == X && __GNUC_MINOR__ == Y && __GNUC_PATCHLEVEL__ == Z))
++#ifdef __GNUC__
++#define GNUC_VERSION_EXPANDED(X,Y,Z) \
++    (__GNUC__ == X && __GNUC_MINOR__ == Y && __GNUC_PATCHLEVEL__ == Z)
++#define GNUC_VERSION(X,Y,Z) GNUC_VERSION_EXPANDED(X,Y,Z)
++#else
++#define GNUC_VERSION(X,Y,Z) 0
++#endif
+ #endif
+ 
+ #ifndef GNUC_VERSION_ATLEAST
+-#define GNUC_VERSION_ATLEAST(X,Y,Z)     \
+-    (defined(__GNUC__) &&        \
+-LEXGE3(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__,X,Y,Z))
++#define GNUC_VERSION_ATLEAST_EXPANDED(X,Y,Z) \
++    LEXGE3(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__,X,Y,Z)
++
++#ifdef __GNUC__
++#define GNUC_VERSION_ATLEAST(X,Y,Z) GNUC_VERSION_ATLEAST_EXPANDED(X,Y,Z)
++#else
++#define GNUC_VERSION_ATLEAST(X,Y,Z) 0
++#endif
+ #endif
+ 
+ #ifndef GNUC_VERSION_ATMOST
+-#define GNUC_VERSION_ATMOST(X,Y,Z)     \
+-    (defined(__GNUC__) &&        \
+-LEXLE3(__GNUC__,__GNUC_MINOR__,__GNUC_PATCHLEVEL__,X,Y,Z))
++#ifdef __GNUC__
++#define GNUC_VERSION_ATMOST(X,Y,Z) \
++    (LEXLE3(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__, X, Y, Z))
++#else
++#define GNUC_VERSION_ATMOST(X,Y,Z) 0
++#endif
+ #endif
+ 
+ #ifndef GMP_VERSION_ATLEAST
++#ifndef __GNU_MP_VERSION
++#define GMP_VERSION_ATLEAST(X,Y,Z) 0
++#else
+ #define GMP_VERSION_ATLEAST(X,Y,Z)     \
+-    (defined(__GNU_MP__) &&        \
+-LEXGE3(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL,X,Y,Z))
++LEXGE3(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL,(X),(Y),(Z))
++#endif
+ #endif
+ 
+ #ifndef GMP_VERSION_ATMOST
++#ifndef __GNU_MP_VERSION
++#define GMP_VERSION_ATMOST(X,Y,Z) 0
++#else
+ #define GMP_VERSION_ATMOST(X,Y,Z)     \
+-    (defined(__GNU_MP__) &&        \
+-LEXLE3(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL,X,Y,Z))
++LEXLE3(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL,(X),(Y),(Z))
++#endif
+ #endif
+ 
+ #ifndef MPI_VERSION_ATLEAST
+@@ -136,15 +154,21 @@ LEXLE3(__GNU_MP_VERSION,__GNU_MP_VERSION_MINOR,__GNU_MP_VERSION_PATCHLEVEL,X,Y,Z
+ #endif  /* MPI_VERSION_ATMOST */
+ 
+ #ifndef OMPI_VERSION_ATLEAST
++#ifdef OPEN_MPI
+ #define OMPI_VERSION_ATLEAST(X,Y,Z)     \
+-    defined(OPEN_MPI) &&        \
+-LEXGE3(OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION,OMPI_RELEASE_VERSION,X,Y,Z)
++    (LEXGE3(OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION,OMPI_RELEASE_VERSION,(X),(Y),(Z)))
++#else
++#define OMPI_VERSION_ATLEAST(X,Y,Z) 0
++#endif
+ #endif  /* OMPI_VERSION_ATLEAST */
+ 
+ #ifndef OMPI_VERSION_ATMOST
++#ifdef OPEN_MPI
+ #define OMPI_VERSION_ATMOST(X,Y,Z)     \
+-    defined(OPEN_MPI) &&        \
+-LEXLE3(OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION,OMPI_RELEASE_VERSION,X,Y,Z)
++    (LEXLE3(OMPI_MAJOR_VERSION,OMPI_MINOR_VERSION,OMPI_RELEASE_VERSION,(X),(Y),(Z)))
++#else
++#define OMPI_VERSION_ATMOST(X,Y,Z) 0
++#endif
+ #endif  /* OMPI_VERSION_ATMOST */
+ 
+ #ifndef MAYBE_UNUSED
+diff --git a/polyselect/polyselect2l.c b/polyselect/polyselect2l.c
+index 0cce6f821..ffd0a6a5f 100644
+--- a/polyselect/polyselect2l.c
++++ b/polyselect/polyselect2l.c
+@@ -21,6 +21,8 @@
+ #include "mpz_poly.h"
+ #include "size_optimization.h"
+ 
++#pragma GCC diagnostic ignored "-Warray-parameter"
++
+ #define TARGET_TIME 10000000 /* print stats every TARGET_TIME milliseconds */
+ #define INIT_FACTOR 8UL
+ #define PREFIX_HASH
+diff --git a/polyselect/polyselect2l_str.c b/polyselect/polyselect2l_str.c
+index 4534b59c3..a8286a591 100644
+--- a/polyselect/polyselect2l_str.c
++++ b/polyselect/polyselect2l_str.c
+@@ -14,6 +14,8 @@
+ #include "polyselect2l_str.h"
+ #include "portability.h"
+ 
++#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
++
+ void match (unsigned long p1, unsigned long p2, int64_t i, mpz_t m0,
+             mpz_t ad, unsigned long d, mpz_t N, unsigned long q,
+             mpz_t rq);
+diff --git a/scripts/cadofactor/cadotask.py b/scripts/cadofactor/cadotask.py
+index 9c151df3c..d50178c99 100755
+--- a/scripts/cadofactor/cadotask.py
++++ b/scripts/cadofactor/cadotask.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ import re
+ import os.path
+-from fractions import gcd
++from math import gcd
+ import abc
+ import random
+ import time
+diff --git a/scripts/cadofactor/wudb.py b/scripts/cadofactor/wudb.py
+index 15201b4da..3d63dc1a4 100755
+--- a/scripts/cadofactor/wudb.py
++++ b/scripts/cadofactor/wudb.py
+@@ -476,7 +476,7 @@ class DictDbTable(DbTable):
+         super().__init__(*args, **kwargs)
+ 
+ 
+-class DictDbAccess(collections.MutableMapping):
++class DictDbAccess(collections.abc.MutableMapping):
+     """ A DB-backed flat dictionary.
+     
+     Flat means that the value of each dictionary entry must be a type that
+@@ -662,7 +662,7 @@ class DictDbAccess(collections.MutableMapping):
+         
+         Values from default dict are merged into self, *not* overwriting
+         existing values in self '''
+-        if key is None and isinstance(default, collections.Mapping):
++        if key is None and isinstance(default, collections.abc.Mapping):
+             update = {key:default[key] for key in default if not key in self}
+             if update:
+                 self.update(update, commit=commit)
+diff --git a/sieve/ecm/mpqs_doit.c b/sieve/ecm/mpqs_doit.c
+index c17d40e18..507c6a3a0 100644
+--- a/sieve/ecm/mpqs_doit.c
++++ b/sieve/ecm/mpqs_doit.c
+@@ -42,6 +42,8 @@
+ #include "modredc_ul.h"
+ #include "gmp_aux.h"
+ 
++#pragma GCC diagnostic ignored "-Wabsolute-value"
++
+ #if 1
+ /* Allows disabling static for profiling */
+ #define STATIC static
+diff --git a/sieve/las-norms.cpp b/sieve/las-norms.cpp
+index c259e9b73..aad3b0d88 100644
+--- a/sieve/las-norms.cpp
++++ b/sieve/las-norms.cpp
+@@ -23,6 +23,8 @@
+ #include "utils.h"
+ #include "verbose.h"
+ 
++#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
++
+ using namespace std;
+ 
+ static long lg_page;
+diff --git a/sieve/las-smallsieve.cpp b/sieve/las-smallsieve.cpp
+index cbc00cad6..d771212cc 100644
+--- a/sieve/las-smallsieve.cpp
++++ b/sieve/las-smallsieve.cpp
+@@ -11,6 +11,7 @@
+ #include "portability.h"
+ #include "verbose.h"
+ 
++#pragma GCC diagnostic ignored "-Wmisleading-indentation"
+ 
+ static const int bucket_region = 1 << LOG_BUCKET_REGION;
+ 
+diff --git a/sieve/las-unsieve.cpp b/sieve/las-unsieve.cpp
+index 9df22c56c..644fd8798 100644
+--- a/sieve/las-unsieve.cpp
++++ b/sieve/las-unsieve.cpp
+@@ -9,6 +9,8 @@
+ #include "gcd.h"
+ #include "memory.h"
+ 
++#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
++
+ static const int verify_gcd = 0; /* Enable slow but thorough test */
+ 
+ /* Set every stride-th byte, starting at index 0, to 255 in an array of
+diff --git a/sieve/las.cpp b/sieve/las.cpp
+index 0051a8c34..83b3f1a16 100644
+--- a/sieve/las.cpp
++++ b/sieve/las.cpp
+@@ -44,6 +44,8 @@
+ #include <smmintrin.h>
+ #endif
+ 
++#pragma GCC diagnostic ignored "-Wclass-memaccess"
++
+ // #define HILIGHT_START   "\e[01;31m"
+ // #define HILIGHT_END   "\e[00;30m"
+ 
+diff --git a/sieve/strategies/test_strategy_cado.c b/sieve/strategies/test_strategy_cado.c
+index 177b042d2..2e888fd18 100644
+--- a/sieve/strategies/test_strategy_cado.c
++++ b/sieve/strategies/test_strategy_cado.c
+@@ -19,6 +19,8 @@
+ #include "tab_fm.h"
+ #include "tab_decomp.h"
+ 
++#pragma GCC diagnostic ignored "-Wmisleading-indentation"
++
+ int CONST_TEST_R = 55;
+ 
+ //#define CADO_INTERLEAVING
+diff --git a/sqrt/crtalgsqrt.c b/sqrt/crtalgsqrt.c
+index 1f9a05765..bee3e42a6 100644
+--- a/sqrt/crtalgsqrt.c
++++ b/sqrt/crtalgsqrt.c
+@@ -89,6 +89,10 @@
+ #include "select_mpi.h"
+ #include "gmp-hacks.h"          // TODO: REMOVE !
+ 
++#pragma GCC diagnostic ignored "-Wformat-truncation"
++#pragma GCC diagnostic ignored "-Warray-parameter"
++#pragma GCC diagnostic ignored "-Wcast-function-type"
++
+ /* {{{ time */
+ double program_starttime;
+ #define WCT     (wct_seconds() - program_starttime)
+diff --git a/tests/utils/test_modredcul_batchinv_ul.c b/tests/utils/test_modredcul_batchinv_ul.c
+index a80202f79..955161404 100644
+--- a/tests/utils/test_modredcul_batchinv_ul.c
++++ b/tests/utils/test_modredcul_batchinv_ul.c
+@@ -6,6 +6,8 @@
+ #include "gcd.h"
+ #include "modredc_ul.h"
+ 
++#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
++
+ static int verbose = 0;
+ 
+ static void
+diff --git a/utils/cado_poly.c b/utils/cado_poly.c
+index 4535009c5..b3c3664d2 100644
+--- a/utils/cado_poly.c
++++ b/utils/cado_poly.c
+@@ -6,6 +6,8 @@
+ #include "cado_poly.h"
+ #include "portability.h"
+ 
++#pragma GCC diagnostic ignored "-Warray-parameter"
++
+ const char * sidenames[NB_POLYS_MAX] = { "side-0", "side-1", };
+ 
+ /* Be conservative and allocate two polynomials by default. */
+diff --git a/utils/crc.c b/utils/crc.c
+index 99e1b2b0c..f126c8422 100644
+--- a/utils/crc.c
++++ b/utils/crc.c
+@@ -1,6 +1,8 @@
+ #include "cado.h"
+ #include "utils.h"
+ 
++#pragma GCC diagnostic ignored "-Warray-parameter"
++
+ /* This computes checksum or arbitrary data ranges. The data is piped
+  * through an LFSR over GF(2^32) with a suitable defining polynomial.
+  */
+diff --git a/utils/filter_io.cpp b/utils/filter_io.cpp
+index d26c55a85..a077d1fd0 100644
+--- a/utils/filter_io.cpp
++++ b/utils/filter_io.cpp
+@@ -15,6 +15,8 @@
+ #include "ringbuf.h"
+ #include "barrier.h"
+ 
++#pragma GCC diagnostic ignored "-Wcast-function-type"
++
+ /* This is a configuration variable which may be set by the caller (it's
+  * possible to bind it to a command-line argument)
+  */
+diff --git a/utils/gzip.c b/utils/gzip.c
+index 035180793..30e048e87 100644
+--- a/utils/gzip.c
++++ b/utils/gzip.c
+@@ -19,6 +19,8 @@
+ #include "misc.h"
+ #include "cado_popen.h"
+ 
++#pragma GCC diagnostic ignored "-Wstringop-truncation"
++
+ struct suffix_handler {
+     const char * suffix;
+     const char * pfmt_in;
+diff --git a/utils/lll.c b/utils/lll.c
+index af02342cd..ffe22cdbe 100644
+--- a/utils/lll.c
++++ b/utils/lll.c
+@@ -473,7 +473,8 @@ long LLL ( mpz_t det, mat_Z B, mat_Z* U, mpz_t a, mpz_t b )
+    }
+ 
+    mpz_set(det, D[s]);
+-   for (j=0; j<=m; j++) mpz_clear(D[j]); free(D);
++   for (j=0; j<=m; j++) mpz_clear(D[j]);
++   free(D);
+    for (j = 0; j <= m; j++) {
+       for (k = 0; k <= m; k++) mpz_clear(lam[j][k]);
+       free (lam[j]);
+diff --git a/utils/misc.c b/utils/misc.c
+index 2804dd9f6..ab98e023f 100644
+--- a/utils/misc.c
++++ b/utils/misc.c
+@@ -27,6 +27,8 @@
+ #include "misc.h"
+ #include "typecast.h"
+ 
++#pragma GCC diagnostic ignored "-Wstringop-truncation"
++
+ /* Wrapper around sysconf(ARG_MAX) that deals with availability of sysconf()
+    and additional constraints on command line length */
+ long get_arg_max(void)
+diff --git a/utils/misc.h b/utils/misc.h
+index eb2228773..f8e6b9283 100644
+--- a/utils/misc.h
++++ b/utils/misc.h
+@@ -15,7 +15,7 @@
+  * lost. It seems that the late GMP-4.3 versions are fine, and the few
+  * missing functions are provided as fallbacks */
+ #if !GMP_VERSION_ATLEAST(4,3,0)
+-#error "GNU MP 4.3.0 (at least) is required to compile CADO-NFS"
++//#error "GNU MP 4.3.0 (at least) is required to compile CADO-NFS"
+ #endif
+ 
+ #ifdef __cplusplus
+diff --git a/utils/modredc_2ul_common.c b/utils/modredc_2ul_common.c
+index 4c9697888..5bebdfc08 100644
+--- a/utils/modredc_2ul_common.c
++++ b/utils/modredc_2ul_common.c
+@@ -6,6 +6,8 @@
+ 
+ #include "mod_common.c"
+ 
++#pragma GCC diagnostic ignored "-Warray-parameter"
++
+ int
+ mod_div3 (residue_t r, const residue_t a, const modulus_t m)
+ {
+diff --git a/utils/params.c b/utils/params.c
+index 4314f5734..5f6598c1b 100644
+--- a/utils/params.c
++++ b/utils/params.c
+@@ -15,6 +15,8 @@
+ #include "version_info.h"
+ #include "verbose.h"
+ 
++#pragma GCC diagnostic ignored "-Wstringop-truncation"
++
+ static pthread_mutex_t mutex[1] = {PTHREAD_MUTEX_INITIALIZER};
+ 
+ void param_list_init(param_list pl)
+diff --git a/utils/renumber.c b/utils/renumber.c
+index 70a37e4a0..c2f564214 100644
+--- a/utils/renumber.c
++++ b/utils/renumber.c
+@@ -6,6 +6,8 @@
+ #include "portability.h"
+ #include "utils.h"
+ 
++#pragma GCC diagnostic ignored "-Warray-parameter"
++
+ //TODO remove lpbr lpba in comment, replace by appropirate lpb[i]
+ /********************** internal functions *****************************/
+ 

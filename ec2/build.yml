@@ -1,24 +1,26 @@
 ---
 - name: Install cado on host and copy over custom files
-  hosts: "{{ ami_builder.group }}"
+  hosts: '{{ ami_builder.group }}'
   vars_files:
-   - vars/custom.yml
-   - vars/common.yml
-   - vars/build.yml
-   - vars/ec2.yml
+    - vars/custom.yml
+    - vars/common.yml
+    - vars/build.yml
+    - vars/ec2.yml
   pre_tasks:
-   - include_vars: vars/build.yml
-     when: test is not defined
-     tags:
-      - always
-   - include_vars: vars/test-build.yml
-     when: test is defined
-     tags:
-      - always
-  roles: 
-   - build
-  
+    - include_vars: vars/build.yml
+      when: test is not defined
+      tags:
+        - always
+    - include_vars: vars/test-build.yml
+      when: test is defined
+      tags:
+        - always
+  roles:
+    - build
+
   post_tasks:
-   # Set up enhanced networking last, since this requires that the nodes be stopped and started (usually with different IP addresses).
-   - include: roles/build/tasks/setup-enhanced-networking.yml
-     tags: enhanced,base
+    # Set up enhanced networking last, since this requires that the nodes be stopped and started (usually with different IP addresses).
+    - include_tasks: roles/build/tasks/setup-enhanced-networking.yml
+      tags:
+        - enhanced
+        - base

@@ -14,7 +14,7 @@ tasks.execpath={{ sourcedir }}/cado-nfs/build
 tasks.msievedir={{ sourcedir }}/msieve-custom
 tasks.hosts=
 {%- for host in groups[master.group]|default([]) | union(groups[mpi.group]|default([])) -%}
-    {{ hostvars[host]['ec2_private_ip_address'] }}
+    {{ hostvars[host]['private_ip_address'] }}
     {%- if not loop.last -%}
     ,
     {%- endif -%}

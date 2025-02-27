@@ -1,5 +1,5 @@
 #!/bin/bash
 
 echo "Terminating mpi nodes"
-ansible-playbook -i {{ faasdir_remote }}/ec2/ec2.py {{ faasdir_remote }}/ec2/terminate-cluster.yml --tags=mpi
+ansible-playbook -i {{ faasdir_remote }}/ec2/inventory/aws_ec2.yml {{ faasdir_remote }}/ec2/terminate-cluster.yml --tags=mpi
 

@@ -1,44 +1,44 @@
 ---
 # Build the public base AMI
-- include: install-common.yml
-  tags: 
+- import_tasks: install-common.yml
+  tags:
     - common
     - base
-- include: install-slurm.yml    # this must be installed before mpi (since in mpi build script uninstalls old versions of MPI)
-  tags: 
-   - slurm
-   - base
-- include: install-mpi.yml
-  tags: 
-   - mpi
-   - base
-- include: install-msieve.yml   # this must be installed after mpi
-  tags: 
-   - msieve
-   - base
-- include: install-cado.yml
+- import_tasks: install-slurm.yml # this must be installed before mpi (since in mpi build script uninstalls old versions of MPI)
   tags:
-   - cado
-   - base
-- include: setup-nfs.yml
-  tags: 
-   - nfs
-   - base
+    - slurm
+    - base
+- import_tasks: install-mpi.yml
+  tags:
+    - mpi
+    - base
+- import_tasks: install-msieve.yml # this must be installed after mpi
+  tags:
+    - msieve
+    - base
+- import_tasks: install-cado.yml
+  tags:
+    - cado
+    - base
+- import_tasks: setup-nfs.yml
+  tags:
+    - nfs
+    - base
 
 # Perform these tasks only on a custom image, since they generate private data
-- name: generate munge key
-  shell: no | /usr/sbin/create-munge-key
-  sudo: yes
-  tags: 
-   - slurm
-   - custom
+#- name: generate munge key
+#  shell: no | /usr/sbin/mungekey
+#  become: true
+#  tags:
+#    - slurm
+#    - custom
 - name: copy over slurm configuration
   template: src=slurm_conf.j2 dest=/usr/local/etc/slurm.conf
-  sudo: yes
+  become: true
   tags:
-   - slurm
-   - custom
-- include: setup-ssh.yml
-  tags: 
-   - ssh
-   - custom
+    - slurm
+    - custom
+- import_tasks: setup-ssh.yml
+  tags:
+    - ssh
+    - custom

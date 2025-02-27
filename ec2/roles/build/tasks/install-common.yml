@@ -1,60 +1,82 @@
 ---
 # Install packages that are needed for all AMIs
 - apt: update_cache=yes
-  sudo: yes
+  become: true
 - apt: upgrade=full
-  sudo: yes
+  become: true
 - apt: upgrade=dist
-  sudo: yes
+  become: true
 - apt: name=build-essential
-  sudo: yes
+  become: true
 - apt: name=g++
-  sudo: yes
+  become: true
 - apt: name=python3-minimal
-  sudo: yes
+  become: true
 - apt: name=cmake 
-  sudo: yes
+  become: true
 - apt: name=python-setuptools 
-  sudo: yes
+  become: true
 - apt: name=git 
-  sudo: yes
+  become: true
 - apt: name=libtool 
-  sudo: yes
+  become: true
 - apt: name=libgmp3-dev 
-  sudo: yes
+  become: true
 - apt: name=libibnetdisc-dev 
-  sudo: yes
+  become: true
+#- apt: name=supervisor 
+#  become: true
 - command: apt-get -y autoremove 
-  sudo: yes
-- easy_install: name=supervisor
-  sudo: yes
-- easy_install: name=superlance
-  sudo: yes
+  become: true
+#- name: Update package list
+#  ansible.builtin.apt:
+#    update_cache: yes
+#  become: true
+#- apt: name=supervisor update_cache=yes state=present
+#  become: true
+- apt: name=python3-pip
+  become: true
+- name: Create symlink for python3 to python
+  ansible.builtin.file:
+    src: /usr/bin/python3
+    dest: /usr/bin/python
+    state: link
+  become: true
+- name: Install supervisor using pip
+  pip:
+    name: supervisor
+    state: present
+  become: true
+- name: Install superlance using pip
+  pip:
+    name: superlance
+    state: present
+  become: true
 
 # Convenience packages
 - apt: name=htop 
-  sudo: yes
+  become: true
 - apt: name=iperf
-  sudo: yes
+  become: true
 
 # Packages for automated emailing and shutdown using Supervisor and Ansible
 - apt: name=sendmail
-  sudo: yes
+  become: true
 - apt: name=sendemail
-  sudo: yes
-- apt: name=python3-pip
-  sudo: yes
-- pip: executable=pip3 name=boto
-  sudo: yes
+  become: true
+- pip: executable=pip3 name=boto3
+  become: true
+- pip: executable=pip3 name=botocore
+  become: true
 
 # Install ansible
-- apt: name=python-boto
-  sudo: yes
-- apt: name=python-apt
-  sudo: yes
+#- apt: name=python-boto
+#  become: true
+#- apt: name=python-apt
+#  become: true
 - apt: name=software-properties-common
-  sudo: yes
+  become: true
 - apt_repository: repo="ppa:ansible/ansible"
-  sudo: yes
+  become: true
 - apt: name=ansible update_cache=yes
-  sudo: yes
+  become: true
