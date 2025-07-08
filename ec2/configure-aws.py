@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import subprocess
 import json
@@ -35,9 +35,9 @@ if region not in ec2_regions:
 
 # Get subnets in region that support the spot instance types that we will launch,
 # since not every availability zone supports all instance types.
-from datetime import datetime
-now = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-instance_type = 'c4.8xlarge'
+from datetime import datetime, timezone
+now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+instance_type = 'c4.large' #'c4.8xlarge'
 history = json.loads(run_command('aws ec2 describe-spot-price-history --instance-types {instance_type} --start-time {now} --end-time {now} --product-description "Linux/UNIX (Amazon VPC)"'.format(now=now, instance_type=instance_type))[0]).get('SpotPriceHistory')
 if not history:
     print("Unable to check spot price history for instance type {instance_type} in region {region}".format(instance_type=instance_type, region=region))
@@ -136,7 +136,7 @@ except Exception as e:
     print('Created key pair {key_pair} at {key_file}'.format(key_pair=key_pair, key_file=key_file))
 
 # Find an Ubuntu base image to use for this availability region.
-base_image = json.loads(run_command('aws ec2 describe-images --filters Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-20150325')[0])['Images'][0]['ImageId']
+base_image = json.loads(run_command('aws ec2 describe-images --filters Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20240701')[0])['Images'][0]['ImageId']
 
 # Write variables to file in yaml format
 var_file = 'vars/ec2.yml'
@@ -145,19 +145,19 @@ with open(var_file, 'w') as f:
     f.write('# This file is created and will be overwritten by configure-aws.py.\n')
     f.write('---\n')
     f.write('ec2:\n')
-    f.write('    region: {}\n'.format(region))
-    f.write('    vpc_id: {}\n'.format(vpc_id))
-    f.write('    cidr_block: {}\n'.format(cidr_block))
-    f.write('    device_name: /dev/sda1\n')
-    f.write('    security_group: {}\n'.format(sg_name))
-    f.write('    placement_group: {}\n'.format(placement_group))
-    f.write('    ssh_key: {}\n'.format(key_pair))
-    f.write('    base_image: {}\n'.format(base_image))
-    f.write('    custom_image: \'\'\n')
-    f.write('    image_name: faas image\n')
-    f.write('    master_private_ip: 10.0.0.4\n')
-    f.write('    subnets:\n')
+    f.write('  region: {}\n'.format(region))
+    f.write('  vpc_id: {}\n'.format(vpc_id))
+    f.write('  cidr_block: {}\n'.format(cidr_block))
+    f.write('  device_name: /dev/sda1\n')
+    f.write('  security_group: {}\n'.format(sg_name))
+    f.write('  placement_group: {}\n'.format(placement_group))
+    f.write('  ssh_key: {}\n'.format(key_pair))
+    f.write('  base_image: {}\n'.format(base_image))
+    f.write('  custom_image: \'\'\n')
+    f.write('  image_name: faas image\n')
+    f.write('  master_private_ip: 10.0.0.4\n')
+    f.write('  subnets:\n')
     for sn in sorted(vpc_subnets, key=lambda sn: sn['CidrBlock']):
-        f.write('        - {{ availability_zone: {az}, subnet_id: {sn_id}, cidr_block: {cidr} }}\n'.format(az=sn['AvailabilityZone'], sn_id=sn['SubnetId'], cidr=sn['CidrBlock']))
+        f.write('    - {{ availability_zone: {az}, subnet_id: {sn_id}, cidr_block: {cidr} }}\n'.format(az=sn['AvailabilityZone'], sn_id=sn['SubnetId'], cidr=sn['CidrBlock']))
 
 print('--- Finished AWS Configuration ---')

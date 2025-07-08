@@ -23,12 +23,20 @@ fi
 
 # Configure slurm
 sudo mkdir -p /run/munge
-sudo chown ubuntu:ubuntu /run/munge
+sudo chown -R munge:munge /var/lib/munge
+sudo chmod 700 /var/lib/munge
+sudo chown -R munge:munge /var/log/munge
+sudo chown munge:munge /run/munge
+sudo chown munge:munge /etc/munge
+sudo chmod 400 /etc/munge/munge.key
+sudo chown munge:munge /etc/munge/munge.key
+sudo systemctl restart munge
 munged --force
 sudo mkdir -p -m 755 /run/slurm
 sudo mkdir -p -m 755 /var/log/slurm
 sudo touch /var/log/slurm/accounting
 sudo chown ubuntu:ubuntu /var/log/slurm/accounting
+sudo chmod 755 /var/log/slurm/accounting
 sudo slurmd
 if [ `hostname -s` = "{{ master_private_hostname }}" ]; then
     sudo slurmctld

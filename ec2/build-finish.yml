@@ -10,33 +10,41 @@
     - name: Remove previous custom image (if it exists)
       ec2_ami:
         state: absent
-        region: "{{ ec2.region }}"
-        image_id: "{{ ec2.custom_image }}"
+        region: '{{ ec2.region }}'
+        image_id: '{{ ec2.custom_image }}'
       failed_when: false
 
     - name: Create AMI from temporary instance
       ec2_ami:
         name: "faas.{{ ansible_date_time.iso8601|replace(':', '-') }}"
         state: present
-        region: "{{ ec2.region }}"
-        description: "slurm, NFS, supervisor, cado-nfs, msieve" 
+        region: '{{ ec2.region }}'
+        description: 'slurm, NFS, supervisor, cado-nfs, msieve'
         wait: yes
         wait_timeout: 1800
-        instance_id: "{{ hostvars[groups[ami_builder.group][0]].ec2_id }}"
+        instance_id: '{{ hostvars[groups[ami_builder.group][0]].instance_id }}'
       register: ami_output
       tags: always
 
-    - name: Copy the new image id to the variables file  
-      lineinfile: 'dest=vars/ec2.yml state=present regexp="^    custom_image" line="    custom_image: {{ ami_output.image_id }}               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too."'
+    - name: Copy the new image id to the variables file
+      lineinfile:
+        path: vars/ec2.yml
+        state: present
+        regexp: '^\s*custom_image:'
+        line: '  custom_image: {{ ami_output.image_id }}               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too.'
       tags: custom
 
     - name: Copy the base image id to the variables file
-      lineinfile: 'dest=vars/ec2.yml state=present regexp="^    base_image" line="    base_image: {{ ami_output.image_id }}               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too."'
+      lineinfile:
+        path: vars/ec2.yml
+        state: present
+        regexp: '^\s*base_image:'
+        line: '  base_image: {{ ami_output.image_id }}               # Dynamically updated when a new AMI is built using build-finish.yml. You can edit this manually too.'
       tags: base
 
     - name: Terminate temporary instance
-      ec2:
+      amazon.aws.ec2_instance:
         state: absent
-        region: "{{ ec2.region }}"
-        instance_ids: "{{ hostvars[groups[ami_builder.group][0]].ec2_id }}"
+        region: '{{ ec2.region }}'
+        instance_ids: '{{ hostvars[groups[ami_builder.group][0]].instance_id }}'
       tags: always

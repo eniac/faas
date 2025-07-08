@@ -2,15 +2,15 @@
 - name: stop master instance
   gather_facts: no
   hosts: localhost
-  vars_files: 
-   - vars/custom.yml
-   - vars/common.yml
-   - vars/ec2.yml
-   - vars/launch.yml
+  vars_files:
+    - vars/custom.yml
+    - vars/common.yml
+    - vars/ec2.yml
+    - vars/launch.yml
   tasks:
-   - ec2:
-       state: 'stopped'
-       region: "{{ ec2.region }}"
-       instance_ids: "{{ hostvars[item].ec2_id }}"
-     with_items:  
-      - "{{ groups[master.group]|default([]) }}"
+    - amazon.aws.ec2_instance:
+        state: 'stopped'
+        region: '{{ ec2.region }}'
+        instance_ids: '{{ hostvars[item].ec2_id }}'
+      with_items:
+        - '{{ groups[master.group]|default([]) }}'

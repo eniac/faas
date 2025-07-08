@@ -4,10 +4,23 @@
     dest: "{{ sourcedir }}/cado-nfs" 
     force: yes
     accept_hostkey: true
-    repo: "git://scm.gforge.inria.fr/cado-nfs/cado-nfs.git" 
+    #repo: "git://scm.gforge.inria.fr/cado-nfs/cado-nfs.git" 
+    repo: "https://gitlab.inria.fr/cado-nfs/cado-nfs.git" 
     version: ac1cd8f7b8bfa5d439619ba8df0ca307e426b125
-  sudo: yes
+  become: true
+- copy: src=cadonfs.patch dest={{ sourcedir }}/cado-nfs
+  become: true
+- patch: strip=1 basedir={{ sourcedir }}/cado-nfs src={{ sourcedir }}/cado-nfs/cadonfs.patch remote_src=True
+  become: true
+#- copy: src=cadonfs2.patch dest={{ sourcedir }}/cado-nfs
+#  become: true
+#- patch: strip=1 basedir={{ sourcedir }}/cado-nfs src={{ sourcedir }}/cado-nfs/cadonfs2.patch remote_src=True
+#  become: true
 - shell: chdir={{ sourcedir }}/cado-nfs printf 'build_tree={{ sourcedir }}/cado-nfs/build\nMPI=0' > local.sh
-  sudo: yes
+  become: true
+- shell: chdir={{ sourcedir }}/cado-nfs yes | make
+  become: true
+- shell: chdir={{ sourcedir }}/cado-nfs yes | make convert_poly
+  become: true
 - shell: chdir={{ sourcedir }}/cado-nfs yes | make install
-  sudo: yes
+  become: true

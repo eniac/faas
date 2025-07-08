@@ -146,7 +146,7 @@ def set_static_parameters(parameters):
 
     # checking the num of mpi jobs does not exceed total core count
     if (mpi_cols * mpi_rows > cps * spm * len(mpi_hosts)):
-        logger.error("Cannot have more jobs per machine than physical cores. Exiting...")
+        logger.error("Cannot have more jobs %d per machine than physical cores %d. Exiting...", mpi_cols * mpi_rows, cps * spm * len(mpi_hosts))
         sys.exit(1)
 
     new_params = [
@@ -172,6 +172,8 @@ def set_dynamic_parameters(parameters):
     # if unspecified, set the slurm batch size
     if parameters.myparams({'batch_size': 0}, ['tasks'])['batch_size'] == 0:
         info = utils.run_command("sinfo -p factor -o %C --states=ALLOC,ALLOCATED,COMP,COMPLETING,IDLE").split('\n')[1].split('/')
+        if info[0] == '':
+            logger.error("Cannot retrieve slurm node. Make sure the nodes are online.")
         alloc_cores = int(info[0])
         free_cores = int(info[1])
         num_cores = alloc_cores + free_cores

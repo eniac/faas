@@ -1,57 +1,61 @@
 ---
-
 # Increase system limits
 - shell: echo 131072 | sudo tee /proc/sys/fs/file-max
-  sudo: yes
+  become: true
 - shell: echo 8192 | sudo tee /proc/sys/net/ipv4/tcp_max_syn_backlog
-  sudo: yes
+  become: true
 - shell: echo 4096 | sudo tee /proc/sys/net/core/somaxconn
-  sudo: yes
+  become: true
 
 # Install munge
 - name: install libmunge-dev
   apt: name=libmunge-dev
-  sudo: yes
+  become: true
 - name: install munge
   apt: name=munge
-  sudo: yes
+  become: true
 - name: ensure that directories exist and have the correct permissions for munge
   file: state=directory owner=ubuntu recurse={{ item.recurse }} group=ubuntu mode={{ item.mode }} path={{ item.path }}
-  sudo: yes
+  become: true
   with_items:
    - { path: /etc/munge, mode: 700, recurse: yes }
    - { path: /var/lib/munge, mode: 711, recurse: no }
    - { path: /var/log/munge, mode: 700, recurse: no }
 - name: remove group write permissions from /var/log or munge complains
   command: chmod g-w /var/log
-  sudo: yes
+  become: true
 
 # Install slurm
 - name: ensure a C compiler is installed
   apt: name=gcc update_cache=yes
-  sudo: yes
+  become: true
 - name: ensure make is installed
   apt: name=make
-  sudo: yes
+  become: true
 - name: copy and unarchive tarball
   unarchive: src=slurm-14.11.8.tar.bz2 dest={{ sourcedir }}
-  sudo: yes
+  become: true
 - name: configure slurm
   command: chdir={{ sourcedir }}/slurm-14.11.8 ./configure
-  sudo: yes
+  become: true
 - name: compile slurm
   command: chdir={{ sourcedir }}/slurm-14.11.8 make
-  sudo: yes
+  become: true
 - name: install programs, documentation, libraries, header files, etc.
   command: chdir={{ sourcedir }}/slurm-14.11.8 make install
-  sudo: yes
+  become: true
 - name: ensure that directories exist and have the correct permissions for slurm
   file: state=directory owner=ubuntu group=ubuntu mode={{ item.mode }} path={{ item.path }}
-  sudo: yes
+  become: true
   with_items:
    - { path: /var/log/slurm, mode: 700 }
    - { path: /var/run/slurm, mode: 755 }
    - { path: /var/spool/slurm, mode: 755 }
 - name: configure slurm and munge daemons to launch on startup
   template: src=rc_local.j2 dest=/etc/rc.local
-  sudo: yes
+  become: true
+- name: ensure /etc/rc.local is executable
+  file:
+    path: /etc/rc.local
+    mode: '0755'
+  become: true

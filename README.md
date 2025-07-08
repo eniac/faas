@@ -48,15 +48,17 @@ Install GNU Parallel using these [instructions](http://www.gnu.org/software/para
 >$ cd ec2
 ```
 
-### Download Ansible EC2 dynamic inventory scripts
-The scripts are available [here](http://docs.ansible.com/ansible/intro_dynamic_inventory.html#example-aws-ec2-external-inventory-script), and you can download them with the following commands:
+### ~~Download Ansible EC2 dynamic inventory scripts~~
+**This has been deprected in recent version of Ansible. Please ignore**
+
+~~The scripts are available [here](http://docs.ansible.com/ansible/intro_dynamic_inventory.html#example-aws-ec2-external-inventory-script), and you can download them with the following commands:~~
 ```bash
 >$ wget https://raw.githubusercontent.com/ansible/ansible/devel/contrib/inventory/ec2.py
 >$ chmod +x ec2.py
 >$ wget https://raw.githubusercontent.com/ansible/ansible/devel/contrib/inventory/ec2.ini
 ```
 
-Set the following values in ec2.ini.
+~~Set the following values in ec2.ini.~~
 
 ```
 regions = <EC2-region>  # you can leave this as 'all', but the script runs more quickly with a single region

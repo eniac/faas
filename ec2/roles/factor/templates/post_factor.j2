@@ -22,4 +22,4 @@ send_results() {
 send_results
 
 echo "Stopping master node"
-ansible-playbook -i {{ faasdir_remote }}/ec2/ec2.py {{ faasdir_remote }}/ec2/stop-master.yml
+ansible-playbook -i {{ faasdir_remote }}/ec2/inventory/aws_ec2.yml {{ faasdir_remote }}/ec2/stop-master.yml

@@ -4,13 +4,13 @@
   tags: params
 - copy: src=~/.boto dest=/home/ubuntu/.boto
 - file: state=directory dest={{ faasdir_remote }} owner=ubuntu group=ubuntu
-  sudo: yes
+  become: true
   tags: faas
 - copy: src={{ faasdir }}/factor dest={{ faasdir_remote }}
   tags: faas
-- copy: src={{ faasdir }}/ec2 dest={{ faasdir_remote }} 
+- copy: src={{ faasdir }}/ec2 dest={{ faasdir_remote }}
   tags: faas
-- file: mode=0755 state=file path={{ faasdir_remote }}/ec2/ec2.py
+- file: mode=0755 state=file path={{ faasdir_remote }}/ec2/inventory/aws_ec2.yml
 - template: mode=0755 src=post_sieve.j2 dest={{ faasdir_remote }}/factor/post_sieve.sh
 - template: mode=0755 src=post_linalg.j2 dest={{ faasdir_remote }}/factor/post_linalg.sh
 - template: mode=0755 src=post_factor.j2 dest={{ faasdir_remote }}/factor/post_factor.sh
@@ -18,6 +18,8 @@
 # Supervisor
 - template: src=supervisord_conf.j2 dest=/home/ubuntu/supervisord.conf
   tags: supervisor
+#- template: src=supervisord_conf.j2 dest=/etc/supervisord.conf
+#  tags: supervisor
 - name: launch factoring job
-  include: launch-supervisor.yml
+  include_tasks: launch-supervisor.yml
   tags: supervisor

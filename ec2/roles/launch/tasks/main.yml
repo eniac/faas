@@ -1,38 +1,43 @@
 ---
 - name: Launch EC2 instance(s)
-  ec2:
-    key_name: "{{ ec2.ssh_key }}"
-    region: "{{ ec2.region }}"
-    zone: "{{ launch_group.zone|default(instance.zone) }}"
-    image: "{{ instance.image }}"
-    vpc_subnet_id: "{{ launch_group.vpc_subnet_id|default(instance.vpc_subnet_id) }}"
-    instance_type: "{{ instance.type }}"
-    group: "{{ ec2.security_group }}"
-    placement_group: "{{ instance.placement_group|default('') }}"
-    exact_count: "{{ launch_group.count|default(instance.count|default(1)) }}"
-    private_ip: "{{ instance.private_ip|default('') }}"
-    count_tag: 
-      launch_group: "{{ launch_group.tag|default(instance.tag) }}"
-    instance_tags:
-      Name: "{{ instance.tag }}"
-      launch_group: "{{ launch_group.tag|default(instance.tag) }}"
+  amazon.aws.ec2_instance:
+    region: '{{ ec2.region }}'
+    subnet_id: '{{ launch_group.vpc_subnet_id | default(instance.vpc_subnet_id) }}'
+    image_id: '{{ instance.image }}'
+    key_name: '{{ ec2.ssh_key }}'
+    instance_type: '{{ instance.type }}'
     volumes:
-    - device_name: "{{ ec2.device_name }}"
-      volume_size: "{{ instance.volume_size|default(8) }}" 
-      delete_on_termination: "{{ instance.delete_volume_on_termination|default(true) }}"
-    validate_certs: no
-    assign_public_ip: yes
-    spot_price: "{{ instance.spot_price|default('') }}"
-    spot_wait_timeout: "{{ instance.spot_wait_timeout|default(0) }}"
-    wait: yes 
+      - device_name: '{{ ec2.device_name }}'
+        ebs:
+          volume_size: '{{ instance.volume_size | default(8) | int }}'
+          delete_on_termination: '{{ instance.delete_volume_on_termination | default(true) }}'
+    placement:
+      group_name: '{{ instance.placement_group | default(omit) }}'
+    security_group: '{{ ec2.security_group }}'
+    exact_count: '{{ launch_group.count | default(instance.count | default(1)) }}'
+    network_interfaces:
+      - private_ip_address: '{{ instance.private_ip | default(omit) }}'
+    tags:
+      Name: '{{ instance.tag }}'
+      launch_group: '{{ launch_group.tag | default(instance.tag) }}'
+    #spot_type: 'one-time'
+    #spot_price: '{{ instance.spot_price | default(omit) }}'
+    wait: true
   register: ec2_output
 
- # If the node is newly added, it will not be in the dynamic inventory file.
- # Add to host group so we can see this node later in the playbook.
+# If the node is newly added, it will not be in the dynamic inventory file.
+# Add to host group so we can see this node later in the playbook.
 - name: Add new instance to host group
-  add_host: hostname={{ item.public_ip }} groupname={{ instance.group }}
-  with_items: ec2_output.tagged_instances
+  ansible.builtin.add_host:
+    hostname: '{{ item.public_ip_address }}'
+    groupname: '{{ instance.group }}'
+  with_items: '{{ ec2_output.instances }}'
 
-- name: Wait for SSH to come up
-  wait_for: host={{ item.public_dns_name }} port=22 delay=0 timeout=320 state=started
-  with_items: ec2_output.tagged_instances
+- name: Wait for SSH to become available
+  ansible.builtin.wait_for:
+    host: '{{ item.public_ip_address }}'
+    port: 22
+    delay: 0
+    timeout: 320
+    state: started
+  with_items: '{{ ec2_output.instances }}'
