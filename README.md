@@ -1,37 +1,3 @@
-This is a tailored version of the [original work](https://github.com/eniac/faas). There has been numerous changes made to its dependency and associated third-party sources in this 10 years.
-
-This rework is intended to run under appropriate Ansible version:
-
-```
-ansible --version
-ansible [core 2.17.9]
-  config file = /home/owner/.ansible.cfg
-  configured module search path = ['/home/owner/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
-  ansible python module location = /usr/lib/python3/dist-packages/ansible
-  ansible collection location = /home/owner/.ansible/collections:/usr/share/ansible/collections
-  executable location = /usr/bin/ansible
-  python version = 3.12.3 (main, Feb  4 2025, 14:48:35) [GCC 13.3.0] (/usr/bin/python3)
-  jinja version = 3.1.2
-  libyaml = True
-```
-
-This is a few notes of my rework:
-
-- Ansible schema has significantly changed and most of part were not worked as intended.
-  - `include:` has been removed and the magical behaviors must be carefully taken. See [this issue](https://github.com/ansible/ansible/issues/30882).
-  - Dynamic inventory has been significantly changed and some instructions in original work no longer work.
-  - `ec2:` module specification has been updated to `amazon.aws.ec2_instance`.
-- `cado-nfs` is no longer available in the remote.
-  - Python scripts in `cado-nfs` was too legacy and has been updated for recent Python versions. (Mainly `gcd` and `collections` changes)
-- `msieve` is no longer available in the specified remote.
-  - `msieve` crashes with specific linearg input (bug). This has been solved by upgrading to `1.54` (previously `1.52`) with already-applied patch at [my fork of msieve](https://github.com/kkent030315/msieve).
-- Some legacy C syntax in `cado-nfs` and `msieve` was threaten as errors in recent version of GCC. This has been solved by adding `cado-nfs.patch`.
-- C Syntax issues in `ixgbevf` and `slurm` has been fixed and re-packed to tarball.
-- Munge has been changed a lot as well. Munge key is now automatically generated.
-- Ensure `/etc/rc.local` is executable
-
----
-
 # FaaS
 The purpose of the FaaS (Factoring as a Service) project is to demonstrate that 512-bit integers can be factored in only a few hours, for less than $100 of compute time in a public cloud environment.  This illustrates the amazing progress in computing power over time, and the risk of continued use of 512-bit RSA keys.
 
